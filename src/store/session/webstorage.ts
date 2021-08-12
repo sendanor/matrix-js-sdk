@@ -23,9 +23,15 @@ limitations under the License.
 
 import * as utils from "../../utils";
 import { logger } from '../../logger';
+import { MatrixEvent } from "../../models/event";
 
 const DEBUG = false;  // set true to enable console logging.
 const E2E_PREFIX = "session.e2e.";
+
+export type MatrixEventPOJO = keyof MatrixEvent & {
+    // eslint-disable-next-line camelcase
+    txn_id: string;
+};
 
 /**
  * Construct a web storage session store, capable of storing account keys,
@@ -205,9 +211,32 @@ export class WebStorageSessionStore {
     public getLocalTrustedBackupPubKey(): string {
         return this.store.getItem(KEY_END_TO_END_TRUSTED_BACKUP_PUBKEY);
     }
+    public getRoomPendingEvents(roomId: string): MatrixEvent[] {
+        const items = this.store.getItem(pendingEventsForRoom(roomId));
+        try {
+            const parsed = JSON.parse(items) || [];
+            return parsed.map(event => new MatrixEvent(event));
+        } catch (error) {
+            logger.warn('Failed parsing room pending events ', items);
+            return [];
+        }
+    }
+    // eslint-disable-next-line camelcase
+    public setRoomPendingEvents(roomId: string, pendingEvents: MatrixEvent[]): void {
+        const saveableMatrixEvents = pendingEvents.map(event => ({
+            ...event.event,
+            txn_id: event.getTxnId(),
+        }));
+        this.store.setItem(pendingEventsForRoom(roomId), JSON.stringify(saveableMatrixEvents));
+    }
+    public removeRoomPendingEvents(roomId: string): void {
+        this.store.removeItem(pendingEventsForRoom(roomId));
+    }
+}
+function pendingEventsForRoom(roomId: string) {
+    return `mx_pending_events_${roomId}`;
 }
 
-const KEY_END_TO_END_ACCOUNT = E2E_PREFIX + "account";
 const KEY_END_TO_END_DEVICE_SYNC_TOKEN = E2E_PREFIX + "device_sync_token";
 const KEY_END_TO_END_DEVICE_LIST_TRACKING_STATUS = E2E_PREFIX + "device_tracking";
 const KEY_END_TO_END_TRUSTED_BACKUP_PUBKEY = E2E_PREFIX + "trusted_backup_pubkey";

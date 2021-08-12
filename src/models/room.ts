@@ -35,6 +35,7 @@ import { IRoomVersionsCapability, MatrixClient, PendingEventOrdering, RoomVersio
 import { ResizeMethod } from "../@types/partials";
 import { Filter } from "../filter";
 import { RoomState } from "./room-state";
+import { MatrixEventPOJO } from "../store/session/webstorage";
 
 // These constants are used as sane defaults when the homeserver doesn't support
 // the m.room_versions capability. In practice, KNOWN_SAFE_ROOM_VERSION should be
@@ -237,18 +238,15 @@ export class Room extends EventEmitter {
 
         if (this.opts.pendingEventOrdering == "detached") {
             this.pendingEventList = [];
-            const serializedPendingEventList = client.sessionStore.store.getItem(pendingEventsKey(this.roomId));
-            if (serializedPendingEventList) {
-                JSON.parse(serializedPendingEventList)
-                    .forEach(async serializedEvent => {
-                        const event = new MatrixEvent(serializedEvent);
-                        if (event.getType() === EventType.RoomMessageEncrypted) {
-                            await event.attemptDecryption(this.client.crypto);
-                        }
-                        event.setStatus(EventStatus.NOT_SENT);
-                        this.addPendingEvent(event, event.getTxnId());
-                    });
-            }
+            const pendingMatrixEventList = client.sessionStore.getRoomPendingEvents(this.roomId);
+
+            pendingMatrixEventList.forEach(async event => {
+                if (event.getType() === EventType.RoomMessageEncrypted) {
+                    await event.attemptDecryption(this.client.crypto);
+                }
+                event.setStatus(EventStatus.NOT_SENT);
+                this.addPendingEvent(event, event.getTxnId());
+            });
         }
 
         // awaited by getEncryptionTargetMembers while room members are loading
@@ -1397,26 +1395,17 @@ export class Room extends EventEmitter {
      */
     private savePendingEvents(): void {
         if (this.pendingEventList) {
-            const pendingEvents = this.pendingEventList.map(event => {
-                return {
-                    ...event.event,
-                    txn_id: event.getTxnId(),
-                };
-            }).filter(event => {
+            const pendingEvents = this.pendingEventList.filter(event => {
                 // Filter out the unencrypted messages if the room is encrypted
-                const isEventEncrypted = event.type === EventType.RoomMessageEncrypted;
+                const isEventEncrypted = event.getType() === EventType.RoomMessageEncrypted;
                 const isRoomEncrypted = this.client.isRoomEncrypted(this.roomId);
                 return isEventEncrypted || !isRoomEncrypted;
             });
 
-            const { store } = this.client.sessionStore;
             if (this.pendingEventList.length > 0) {
-                store.setItem(
-                    pendingEventsKey(this.roomId),
-                    JSON.stringify(pendingEvents),
-                );
+                this.client.sessionStore.setRoomPendingEvents(this.roomId, pendingEvents);
             } else {
-                store.removeItem(pendingEventsKey(this.roomId));
+                this.client.sessionStore.removeRoomPendingEvents(this.roomId);
             }
         }
     }
