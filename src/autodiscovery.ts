@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 /*
 Copyright 2018 New Vector Ltd
 Copyright 2019 The Matrix.org Foundation C.I.C.
@@ -31,7 +32,8 @@ import { URL as NodeURL } from "url";
  * Additional properties than those defined here may be present, and
  * should follow the Java package naming convention.
  */
-class DiscoveredClientConfig { // eslint-disable-line no-unused-vars
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+abstract class DiscoveredClientConfig { // eslint-disable-line no-unused-vars
     // Dev note: this is basically a copy/paste of the .well-known response
     // object as defined in the spec. It does have additional information,
     // however. Overall, this exists to serve as a place for documentation
@@ -253,7 +255,7 @@ export class AutoDiscovery {
         const hsVersions = await this._fetchWellKnownObject(
             `${hsUrl}/_matrix/client/versions`,
         );
-        if (!hsVersions || !hsVersions.raw["versions"]) {
+        if (!hsVersions || !(hsVersions as any).raw["versions"]) {
             logger.error("Invalid /versions response");
             clientConfig["m.homeserver"].error = AutoDiscovery.ERROR_INVALID_HOMESERVER;
 
@@ -302,7 +304,7 @@ export class AutoDiscovery {
             const isResponse = await this._fetchWellKnownObject(
                 `${isUrl}/_matrix/identity/api/v1`,
             );
-            if (!isResponse || !isResponse.raw || isResponse.action !== "SUCCESS") {
+            if (!isResponse || !(isResponse as any).raw || (isResponse as any).action !== "SUCCESS") {
                 logger.error("Invalid /api/v1 response");
                 failingClientConfig["m.identity_server"].error =
                     AutoDiscovery.ERROR_INVALID_IDENTITY_SERVER;
@@ -398,10 +400,10 @@ export class AutoDiscovery {
         const wellknown = await this._fetchWellKnownObject(
             `https://${domain}/.well-known/matrix/client`,
         );
-        if (!wellknown || wellknown.action !== "SUCCESS") {
+        if (!wellknown || (wellknown as any).action !== "SUCCESS") {
             logger.error("No response or error when parsing .well-known");
-            if (wellknown.reason) logger.error(wellknown.reason);
-            if (wellknown.action === "IGNORE") {
+            if ((wellknown as any).reason) logger.error((wellknown as any).reason);
+            if ((wellknown as any).action === "IGNORE") {
                 clientConfig["m.homeserver"] = {
                     state: AutoDiscovery.PROMPT,
                     error: null,
@@ -416,7 +418,7 @@ export class AutoDiscovery {
         }
 
         // Step 2: Validate and parse the config
-        return AutoDiscovery.fromDiscoveryConfig(wellknown.raw);
+        return AutoDiscovery.fromDiscoveryConfig((wellknown as any).raw);
     }
 
     /**
@@ -436,7 +438,7 @@ export class AutoDiscovery {
             `https://${domain}/.well-known/matrix/client`,
         );
         if (!response) return {};
-        return response.raw || {};
+        return (response as any).raw || {};
     }
 
     /**
@@ -447,8 +449,8 @@ export class AutoDiscovery {
      * @return {string|boolean} The sanitized URL or a falsey value if the URL is invalid.
      * @private
      */
-    static _sanitizeWellKnownUrl(url) {
-        if (!url) return false;
+    static _sanitizeWellKnownUrl(url): string | undefined {
+        if (!url) return undefined;
 
         try {
             // We have to try and parse the URL using the NodeJS URL
@@ -463,8 +465,8 @@ export class AutoDiscovery {
                 parsed = new URL(url);
             }
 
-            if (!parsed || !parsed.hostname) return false;
-            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return false;
+            if (!parsed || !parsed.hostname) return undefined;
+            if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return undefined;
 
             const port = parsed.port ? `:${parsed.port}` : "";
             const path = parsed.pathname ? parsed.pathname : "";
@@ -475,7 +477,7 @@ export class AutoDiscovery {
             return saferUrl;
         } catch (e) {
             logger.error(e);
-            return false;
+            return undefined;
         }
     }
 
