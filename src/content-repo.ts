@@ -17,7 +17,7 @@ limitations under the License.
  * @module content-repo
  */
 
-import * as utils from "./utils";
+import { encodeParams } from "./utils";
 
 /**
  * Get the HTTP URL for an MXC URI.
@@ -77,6 +77,6 @@ export function getHttpUriForMxc(
         serverAndMediaId = serverAndMediaId.substr(0, fragmentOffset);
     }
 
-    const urlParams = (Object.keys(params).length === 0 ? "" : ("?" + utils.encodeParams(params)));
+    const urlParams = (Object.keys(params).length === 0 ? "" : ("?" + encodeParams(params)));
     return baseUrl + prefix + serverAndMediaId + urlParams + fragment;
 }

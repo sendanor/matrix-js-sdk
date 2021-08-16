@@ -19,7 +19,7 @@ limitations under the License.
  * of requests.
  * @module scheduler
  */
-import * as utils from "./utils";
+import { removeElement, defer } from "./utils";
 import { logger } from './logger';
 import { MatrixEvent } from "./models/event";
 import { EventType } from "./@types/event";
@@ -154,7 +154,7 @@ export class MatrixScheduler<T = ISendEventResponse> {
             return false;
         }
         let removed = false;
-        utils.removeElement(this.queues[name], (element) => {
+        removeElement(this.queues[name], (element) => {
             if (element.event.getId() === event.getId()) {
                 // XXX we should probably reject the promise?
                 // https://github.com/matrix-org/matrix-js-sdk/issues/496
@@ -192,15 +192,15 @@ export class MatrixScheduler<T = ISendEventResponse> {
         if (!this.queues[queueName]) {
             this.queues[queueName] = [];
         }
-        const defer = utils.defer<T>();
+        const d = defer<T>();
         this.queues[queueName].push({
             event: event,
-            defer: defer,
+            defer: d,
             attempts: 0,
         });
         debuglog("Queue algorithm dumped event %s into queue '%s'", event.getId(), queueName);
         this.startProcessingQueues();
-        return defer.promise;
+        return d.promise;
     }
 
     private startProcessingQueues(): void {

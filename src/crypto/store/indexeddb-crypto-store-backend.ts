@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 import { logger, PrefixedLogger } from '../../logger';
-import * as utils from "../../utils";
+import { deepCompare } from "../../utils";
 import {
     CryptoStore,
     IDeviceData,
@@ -168,7 +168,7 @@ export class Backend implements CryptoStore {
 
             const existing = cursor.value;
 
-            if (utils.deepCompare(existing.requestBody, requestBody)) {
+            if (deepCompare(existing.requestBody, requestBody)) {
                 // got a match
                 callback(existing);
                 return;

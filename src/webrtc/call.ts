@@ -23,7 +23,7 @@ limitations under the License.
 
 import { logger } from '../logger';
 import { EventEmitter } from 'events';
-import * as utils from '../utils';
+import { checkObjectHasKeys, recursivelyAssign } from '../utils';
 import { MatrixEvent } from '../models/event';
 import { EventType } from '../@types/event';
 import { RoomMember } from '../models/room-member';
@@ -328,7 +328,7 @@ export class MatrixCall extends EventEmitter {
             });
         }
         for (const server of this.turnServers) {
-            utils.checkObjectHasKeys(server, ["urls"]);
+            checkObjectHasKeys(server, ["urls"]);
         }
 
         this.callId = genCallID();
@@ -1321,7 +1321,7 @@ export class MatrixCall extends EventEmitter {
     }
 
     private updateRemoteSDPStreamMetadata(metadata: SDPStreamMetadata): void {
-        this.remoteSDPStreamMetadata = utils.recursivelyAssign(this.remoteSDPStreamMetadata || {}, metadata, true);
+        this.remoteSDPStreamMetadata = recursivelyAssign(this.remoteSDPStreamMetadata || {}, metadata, true);
         for (const feed of this.getRemoteFeeds()) {
             const streamId = feed.stream.id;
             feed.setAudioMuted(this.remoteSDPStreamMetadata[streamId]?.audio_muted);

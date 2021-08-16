@@ -26,8 +26,7 @@ limitations under the License.
 import { User } from "./models/user";
 import { NotificationCountType, Room } from "./models/room";
 import { Group } from "./models/group";
-import * as utils from "./utils";
-import { IDeferred } from "./utils";
+import { IDeferred, deepCopy, promiseMapSeries, defer } from "./utils";
 import { Filter } from "./filter";
 import { EventTimeline } from "./models/event-timeline";
 import { PushProcessor } from "./pushprocessor";
@@ -326,7 +325,7 @@ export class SyncApi {
 
             // FIXME: Mostly duplicated from processRoomEvents but not entirely
             // because "state" in this API is at the BEGINNING of the chunk
-            const oldStateEvents = utils.deepCopy(response.state)
+            const oldStateEvents = deepCopy(response.state)
                 .map(client.getEventMapper());
             const stateEvents = response.state.map(client.getEventMapper());
             const messages = response.messages.chunk.map(client.getEventMapper());
@@ -1186,7 +1185,7 @@ export class SyncApi {
         });
 
         // Handle joins
-        await utils.promiseMapSeries(joinRooms, async (joinObj) => {
+        await promiseMapSeries(joinRooms, async (joinObj) => {
             const room = joinObj.room;
             const stateEvents = this.mapSyncEventsFormat(joinObj.state, room);
             // Prevent events from being decrypted ahead of time
@@ -1320,8 +1319,8 @@ export class SyncApi {
                 }
             };
 
-            await utils.promiseMapSeries(stateEvents, processRoomEvent);
-            await utils.promiseMapSeries(timelineEvents, processRoomEvent);
+            await promiseMapSeries(stateEvents, processRoomEvent);
+            await promiseMapSeries(timelineEvents, processRoomEvent);
             ephemeralEvents.forEach(function(e) {
                 client.emit("event", e);
             });
@@ -1431,7 +1430,7 @@ export class SyncApi {
             this.pokeKeepAlive();
         }
         if (!this.connectionReturnedDefer) {
-            this.connectionReturnedDefer = utils.defer();
+            this.connectionReturnedDefer = defer();
         }
         return this.connectionReturnedDefer.promise;
     }

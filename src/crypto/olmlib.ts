@@ -27,7 +27,7 @@ import { Logger } from "loglevel";
 import OlmDevice from "./OlmDevice";
 import { DeviceInfo } from "./deviceinfo";
 import { logger } from '../logger';
-import * as utils from "../utils";
+import { extend } from "../utils";
 import { IOneTimeKey } from "./dehydration";
 import { MatrixClient } from "../client";
 
@@ -126,7 +126,7 @@ export async function encryptMessageForDevice(
     // involved in the session. If we're looking to reduce data transfer in the
     // future, we could elide them for subsequent messages.
 
-    utils.extend(payload, payloadFields);
+    extend(payload, payloadFields);
 
     resultsObject[deviceKey] = await olmDevice.encryptMessage(
         deviceKey, sessionId, JSON.stringify(payload),

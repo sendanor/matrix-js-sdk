@@ -23,8 +23,7 @@ import { EventEmitter } from "events";
 import { EventTimelineSet } from "./event-timeline-set";
 import { EventTimeline } from "./event-timeline";
 import { getHttpUriForMxc } from "../content-repo";
-import * as utils from "../utils";
-import { normalize } from "../utils";
+import { removeElement, encodeParams, normalize, encodeUri, compare } from "../utils";
 import { EventStatus, IEvent, MatrixEvent } from "./event";
 import { RoomMember } from "./room-member";
 import { IRoomSummary, RoomSummary } from "./room-summary";
@@ -469,7 +468,7 @@ export class Room extends EventEmitter {
                 this.opts.pendingEventOrdering);
         }
 
-        const removed = utils.removeElement(
+        const removed = removeElement(
             this.pendingEventList,
             function(ev) {
                 return ev.getId() == eventId;
@@ -651,11 +650,11 @@ export class Room extends EventEmitter {
 
     private async loadMembersFromServer(): Promise<IEvent[]> {
         const lastSyncToken = this.client.store.getSyncToken();
-        const queryString = utils.encodeParams({
+        const queryString = encodeParams({
             not_membership: "leave",
             at: lastSyncToken,
         });
-        const path = utils.encodeUri("/rooms/$roomId/members?" + queryString,
+        const path = encodeUri("/rooms/$roomId/members?" + queryString,
             { $roomId: this.roomId });
         const http = this.client.http;
         const response = await http.authedRequest(undefined, "GET", path);
@@ -2074,7 +2073,7 @@ export class Room extends EventEmitter {
                 return true;
             });
             // make sure members have stable order
-            otherMembers.sort((a, b) => utils.compare(a.userId, b.userId));
+            otherMembers.sort((a, b) => compare(a.userId, b.userId));
             // only 5 first members, immitate summaryHeroes
             otherMembers = otherMembers.slice(0, 5);
             otherNames = otherMembers.map((m) => m.name);

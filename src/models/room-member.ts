@@ -21,7 +21,7 @@ limitations under the License.
 import { EventEmitter } from "events";
 
 import { getHttpUriForMxc } from "../content-repo";
-import * as utils from "../utils";
+import { removeHiddenChars } from "../utils";
 import { User } from "./user";
 import { MatrixEvent } from "./event";
 import { RoomState } from "./room-state";
@@ -132,7 +132,7 @@ export class RoomMember extends EventEmitter {
         );
 
         this.rawDisplayName = event.getDirectionalContent().displayname;
-        if (!this.rawDisplayName || !utils.removeHiddenChars(this.rawDisplayName)) {
+        if (!this.rawDisplayName || !removeHiddenChars(this.rawDisplayName)) {
             this.rawDisplayName = this.userId;
         }
 
@@ -327,7 +327,7 @@ function shouldDisambiguate(selfUserId: string, displayName: string, roomState: 
 
     // First check if the displayname is something we consider truthy
     // after stripping it of zero width characters and padding spaces
-    if (!utils.removeHiddenChars(displayName)) return false;
+    if (!removeHiddenChars(displayName)) return false;
 
     if (!roomState) return false;
 
@@ -361,7 +361,7 @@ function calculateDisplayName(
 
     // First check if the displayname is something we consider truthy
     // after stripping it of zero width characters and padding spaces
-    if (!utils.removeHiddenChars(displayName)) return selfUserId;
+    if (!removeHiddenChars(displayName)) return selfUserId;
 
     return displayName;
 }

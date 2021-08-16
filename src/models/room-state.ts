@@ -22,7 +22,7 @@ import { EventEmitter } from "events";
 
 import { RoomMember } from "./room-member";
 import { logger } from '../logger';
-import * as utils from "../utils";
+import { removeHiddenChars, isNumber } from "../utils";
 import { EventType } from "../@types/event";
 import { MatrixEvent } from "./event";
 import { MatrixClient } from "../client";
@@ -36,7 +36,7 @@ enum OobStatus {
 
 export class RoomState extends EventEmitter {
     private sentinels: Record<string, RoomMember> = {}; // userId: RoomMember
-    // stores fuzzy matches to a list of userIDs (applies utils.removeHiddenChars to keys)
+    // stores fuzzy matches to a list of userIDs (applies removeHiddenChars to keys)
     private displayNameToUserIds: Record<string, string[]> = {};
     private userIdsToDisplayNames: Record<string, string> = {};
     private tokenToInvite: Record<string, MatrixEvent> = {}; // 3pid invite state_key to m.room.member invite
@@ -547,7 +547,7 @@ export class RoomState extends EventEmitter {
      * @return {string[]} An array of user IDs or an empty array.
      */
     public getUserIdsWithDisplayName(displayName: string): string[] {
-        return this.displayNameToUserIds[utils.removeHiddenChars(displayName)] || [];
+        return this.displayNameToUserIds[removeHiddenChars(displayName)] || [];
     }
 
     /**
@@ -586,7 +586,7 @@ export class RoomState extends EventEmitter {
         }
 
         let requiredLevel = 50;
-        if (utils.isNumber(powerLevels[action])) {
+        if (isNumber(powerLevels[action])) {
             requiredLevel = powerLevels[action];
         }
 
@@ -716,7 +716,7 @@ export class RoomState extends EventEmitter {
             powerLevelsEvent &&
             powerLevelsEvent.getContent() &&
             powerLevelsEvent.getContent().notifications &&
-            utils.isNumber(powerLevelsEvent.getContent().notifications[notifLevelKey])
+            isNumber(powerLevelsEvent.getContent().notifications[notifLevelKey])
         ) {
             notifLevel = powerLevelsEvent.getContent().notifications[notifLevelKey];
         }
@@ -757,7 +757,7 @@ export class RoomState extends EventEmitter {
             // We clobber the user_id > name lookup but the name -> [user_id] lookup
             // means we need to remove that user ID from that array rather than nuking
             // the lot.
-            const strippedOldName = utils.removeHiddenChars(oldName);
+            const strippedOldName = removeHiddenChars(oldName);
 
             const existingUserIds = this.displayNameToUserIds[strippedOldName];
             if (existingUserIds) {
@@ -769,7 +769,7 @@ export class RoomState extends EventEmitter {
 
         this.userIdsToDisplayNames[userId] = displayName;
 
-        const strippedDisplayname = displayName && utils.removeHiddenChars(displayName);
+        const strippedDisplayname = displayName && removeHiddenChars(displayName);
         // an empty stripped displayname (undefined/'') will be set to MXID in room-member.js
         if (strippedDisplayname) {
             if (!this.displayNameToUserIds[strippedDisplayname]) {

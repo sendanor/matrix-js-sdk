@@ -21,7 +21,7 @@ limitations under the License.
  */
 
 import { parse as parseContentType } from "content-type";
-import * as utils from "./utils";
+import { checkObjectHasKeys, isFunction, extend, defer, encodeParams } from "./utils";
 import { logger } from './logger';
 
 // we use our own implementation of setTimeout, so that if we get suspended in
@@ -87,7 +87,7 @@ export const PREFIX_MEDIA_R0 = "/_matrix/media/r0";
  * Authorization header instead of query param to send the access token to the server.
  */
 export function MatrixHttpApi(event_emitter, opts) {
-    utils.checkObjectHasKeys(opts, ["baseUrl", "request", "prefix"]);
+    checkObjectHasKeys(opts, ["baseUrl", "request", "prefix"]);
     opts.onlyData = opts.onlyData || false;
     this.event_emitter = event_emitter;
     this.opts = opts;
@@ -161,7 +161,7 @@ MatrixHttpApi.prototype = {
      *    opts.onlyContentUri.  Rejects with an error (usually a MatrixError).
      */
     uploadContent: function(file, opts) {
-        if (utils.isFunction(opts)) {
+        if (isFunction(opts)) {
             // opts used to be callback
             opts = {
                 callback: opts,
@@ -256,7 +256,7 @@ MatrixHttpApi.prototype = {
         }
 
         if (global.XMLHttpRequest) {
-            const defer = utils.defer();
+            const defer = defer();
             const xhr = new global.XMLHttpRequest();
             upload.xhr = xhr;
             const cb = requestCallback(defer, opts.callback, this.opts.onlyData);
@@ -398,7 +398,7 @@ MatrixHttpApi.prototype = {
 
         const fullUri = this.opts.idBaseUrl + prefix + path;
 
-        if (callback !== undefined && !utils.isFunction(callback)) {
+        if (callback !== undefined && !isFunction(callback)) {
             throw Error(
                 "Expected callback to be a function but got " + typeof callback,
             );
@@ -421,7 +421,7 @@ MatrixHttpApi.prototype = {
             opts.headers['Authorization'] = `Bearer ${accessToken}`;
         }
 
-        const defer = utils.defer();
+        const defer = defer();
         this.opts.request(
             opts,
             requestCallback(defer, callback, this.opts.onlyData),
@@ -610,7 +610,7 @@ MatrixHttpApi.prototype = {
     getUrl: function(path, queryParams, prefix) {
         let queryString = "";
         if (queryParams) {
-            queryString = "?" + utils.encodeParams(queryParams);
+            queryString = "?" + encodeParams(queryParams);
         }
         return this.opts.baseUrl + prefix + path + queryString;
     },
@@ -642,7 +642,7 @@ MatrixHttpApi.prototype = {
      * body. Rejects
      */
     _request: function(callback, method, uri, queryParams, data, opts) {
-        if (callback !== undefined && !utils.isFunction(callback)) {
+        if (callback !== undefined && !isFunction(callback)) {
             throw Error(
                 "Expected callback to be a function but got " + typeof callback,
             );
@@ -657,7 +657,7 @@ MatrixHttpApi.prototype = {
             };
         }
 
-        const headers = utils.extend({}, opts.headers || {});
+        const headers = extend({}, opts.headers || {});
         const json = opts.json === undefined ? true : opts.json;
         let bodyParser = opts.bodyParser;
 
@@ -683,7 +683,7 @@ MatrixHttpApi.prototype = {
             }
         }
 
-        const defer = utils.defer();
+        const defer = defer();
 
         let timeoutId;
         let timedOut = false;

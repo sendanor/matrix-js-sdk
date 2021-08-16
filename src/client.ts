@@ -26,7 +26,7 @@ import { StubStore } from "./store/stub";
 import { createNewMatrixCall, MatrixCall } from "./webrtc/call";
 import { Filter, IFilterDefinition } from "./filter";
 import { CallEventHandler } from './webrtc/callEventHandler';
-import * as utils from './utils';
+import { ensureNoTrailingSlash, encodeUri, isFunction, deepCopy, defer, deepCompare, encodeParams, extend } from './utils';
 import { sleep } from './utils';
 import { Group } from "./models/group";
 import { Direction, EventTimeline } from "./models/event-timeline";
@@ -738,8 +738,8 @@ export class MatrixClient extends EventEmitter {
     constructor(opts: IMatrixClientCreateOpts) {
         super();
 
-        opts.baseUrl = utils.ensureNoTrailingSlash(opts.baseUrl);
-        opts.idBaseUrl = utils.ensureNoTrailingSlash(opts.idBaseUrl);
+        opts.baseUrl = ensureNoTrailingSlash(opts.baseUrl);
+        opts.idBaseUrl = ensureNoTrailingSlash(opts.idBaseUrl);
 
         this.baseUrl = opts.baseUrl;
         this.idBaseUrl = opts.idBaseUrl;
@@ -2571,7 +2571,7 @@ export class MatrixClient extends EventEmitter {
             this.crypto.backupManager.disableKeyBackup();
         }
 
-        const path = utils.encodeUri("/room_keys/version/$version", {
+        const path = encodeUri("/room_keys/version/$version", {
             $version: version,
         });
 
@@ -2584,12 +2584,12 @@ export class MatrixClient extends EventEmitter {
     private makeKeyBackupPath(roomId: string, sessionId: string, version: string): IKeyBackupPath {
         let path;
         if (sessionId !== undefined) {
-            path = utils.encodeUri("/room_keys/keys/$roomId/$sessionId", {
+            path = encodeUri("/room_keys/keys/$roomId/$sessionId", {
                 $roomId: roomId,
                 $sessionId: sessionId,
             });
         } else if (roomId !== undefined) {
-            path = utils.encodeUri("/room_keys/keys/$roomId", {
+            path = encodeUri("/room_keys/keys/$roomId", {
                 $roomId: roomId,
             });
         } else {
@@ -3038,7 +3038,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public setAccountData(eventType: EventType | string, content: IContent, callback?: Callback): Promise<{}> {
-        const path = utils.encodeUri("/user/$userId/account_data/$type", {
+        const path = encodeUri("/user/$userId/account_data/$type", {
             $userId: this.credentials.userId,
             $type: eventType,
         });
@@ -3079,7 +3079,7 @@ export class MatrixClient extends EventEmitter {
             // does the same to match.
             return event.getContent();
         }
-        const path = utils.encodeUri("/user/$userId/account_data/$type", {
+        const path = encodeUri("/user/$userId/account_data/$type", {
             $userId: this.credentials.userId,
             $type: eventType,
         });
@@ -3142,7 +3142,7 @@ export class MatrixClient extends EventEmitter {
      */
     public async joinRoom(roomIdOrAlias: string, opts?: IJoinRoomOpts, callback?: Callback): Promise<Room> {
         // to help people when upgrading..
-        if (utils.isFunction(opts)) {
+        if (isFunction(opts)) {
             throw new Error("Expected 'opts' object, got function.");
         }
         opts = opts || {};
@@ -3178,7 +3178,7 @@ export class MatrixClient extends EventEmitter {
                 data.third_party_signed = signedInviteObj;
             }
 
-            const path = utils.encodeUri("/join/$roomid", { $roomid: roomIdOrAlias });
+            const path = encodeUri("/join/$roomid", { $roomid: roomIdOrAlias });
             const res = await this.http.authedRequest(undefined, "POST", path, queryString, data, reqOpts);
 
             const roomId = res['room_id'];
@@ -3260,7 +3260,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public getRoomTags(roomId: string, callback?: Callback): Promise<unknown> { // TODO: Types
-        const path = utils.encodeUri("/user/$userId/rooms/$roomId/tags/", {
+        const path = encodeUri("/user/$userId/rooms/$roomId/tags/", {
             $userId: this.credentials.userId,
             $roomId: roomId,
         });
@@ -3278,7 +3278,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public setRoomTag(roomId: string, tagName: string, metadata: ITagMetadata, callback?: Callback): Promise<{}> {
-        const path = utils.encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {
+        const path = encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {
             $userId: this.credentials.userId,
             $roomId: roomId,
             $tag: tagName,
@@ -3294,7 +3294,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public deleteRoomTag(roomId: string, tagName: string, callback?: Callback): Promise<void> {
-        const path = utils.encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {
+        const path = encodeUri("/user/$userId/rooms/$roomId/tags/$tag", {
             $userId: this.credentials.userId,
             $roomId: roomId,
             $tag: tagName,
@@ -3318,7 +3318,7 @@ export class MatrixClient extends EventEmitter {
         content: Record<string, any>,
         callback?: Callback,
     ): Promise<{}> {
-        const path = utils.encodeUri("/user/$userId/rooms/$roomId/account_data/$type", {
+        const path = encodeUri("/user/$userId/rooms/$roomId/account_data/$type", {
             $userId: this.credentials.userId,
             $roomId: roomId,
             $type: eventType,
@@ -3349,10 +3349,10 @@ export class MatrixClient extends EventEmitter {
         if (event?.getType() === EventType.RoomPowerLevels) {
             // take a copy of the content to ensure we don't corrupt
             // existing client state with a failed power level change
-            content = utils.deepCopy(event.getContent()) as typeof content;
+            content = deepCopy(event.getContent()) as typeof content;
         }
         content.users[userId] = powerLevel;
-        const path = utils.encodeUri("/rooms/$roomId/state/m.room.power_levels", {
+        const path = encodeUri("/rooms/$roomId/state/m.room.power_levels", {
             $roomId: roomId,
         });
         return this.http.authedRequest(callback, "PUT", path, undefined, content);
@@ -3391,7 +3391,7 @@ export class MatrixClient extends EventEmitter {
         txnId: string,
         callback?: Callback,
     ): Promise<ISendEventResponse> {
-        if (utils.isFunction(txnId)) {
+        if (isFunction(txnId)) {
             callback = txnId as any as Callback; // convert for legacy
             txnId = undefined;
         }
@@ -3598,14 +3598,14 @@ export class MatrixClient extends EventEmitter {
             if (event.getStateKey() && event.getStateKey().length > 0) {
                 pathTemplate = "/rooms/$roomId/state/$eventType/$stateKey";
             }
-            path = utils.encodeUri(pathTemplate, pathParams);
+            path = encodeUri(pathTemplate, pathParams);
         } else if (event.isRedaction()) {
             const pathTemplate = `/rooms/$roomId/redact/$redactsEventId/$txnId`;
-            path = utils.encodeUri(pathTemplate, Object.assign({
+            path = encodeUri(pathTemplate, Object.assign({
                 $redactsEventId: event.event.redacts,
             }, pathParams));
         } else {
-            path = utils.encodeUri("/rooms/$roomId/send/$eventType/$txnId", pathParams);
+            path = encodeUri("/rooms/$roomId/send/$eventType/$txnId", pathParams);
         }
 
         return this.http.authedRequest(
@@ -3657,7 +3657,7 @@ export class MatrixClient extends EventEmitter {
         txnId?: string,
         callback?: Callback,
     ): Promise<ISendEventResponse> {
-        if (utils.isFunction(txnId)) {
+        if (isFunction(txnId)) {
             callback = txnId as any as Callback; // for legacy
             txnId = undefined;
         }
@@ -3729,7 +3729,7 @@ export class MatrixClient extends EventEmitter {
         text = "Image",
         callback?: Callback,
     ): Promise<ISendEventResponse> {
-        if (utils.isFunction(text)) {
+        if (isFunction(text)) {
             callback = text as any as Callback; // legacy
             text = undefined;
         }
@@ -3758,7 +3758,7 @@ export class MatrixClient extends EventEmitter {
         text = "Sticker",
         callback?: Callback,
     ): Promise<ISendEventResponse> {
-        if (utils.isFunction(text)) {
+        if (isFunction(text)) {
             callback = text as any as Callback; // legacy
             text = undefined;
         }
@@ -3843,7 +3843,7 @@ export class MatrixClient extends EventEmitter {
             return Promise.resolve({}); // guests cannot send receipts so don't bother.
         }
 
-        const path = utils.encodeUri("/rooms/$roomId/receipt/$receiptType/$eventId", {
+        const path = encodeUri("/rooms/$roomId/receipt/$receiptType/$eventId", {
             $roomId: event.getRoomId(),
             $receiptType: receiptType,
             $eventId: event.getId(),
@@ -3990,7 +3990,7 @@ export class MatrixClient extends EventEmitter {
             return Promise.resolve({}); // guests cannot send typing notifications so don't bother.
         }
 
-        const path = utils.encodeUri("/rooms/$roomId/typing/$userId", {
+        const path = encodeUri("/rooms/$roomId/typing/$userId", {
             $roomId: roomId,
             $userId: this.credentials.userId,
         });
@@ -4117,7 +4117,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public async inviteByThreePid(roomId: string, medium: string, address: string, callback?: Callback): Promise<{}> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/rooms/$roomId/invite",
             { $roomId: roomId },
         );
@@ -4255,7 +4255,7 @@ export class MatrixClient extends EventEmitter {
         // a revoking of privilege, otherwise two people racing to
         // kick / ban someone could end up banning and then un-banning
         // them.
-        const path = utils.encodeUri("/rooms/$roomId/unban", {
+        const path = encodeUri("/rooms/$roomId/unban", {
             $roomId: roomId,
         });
         const data = {
@@ -4296,12 +4296,12 @@ export class MatrixClient extends EventEmitter {
         reason?: string,
         callback?: Callback,
     ) {
-        if (utils.isFunction(reason)) {
+        if (isFunction(reason)) {
             callback = reason as any as Callback; // legacy
             reason = undefined;
         }
 
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/rooms/$roomId/state/m.room.member/$userId",
             { $roomId: roomId, $userId: userId },
         );
@@ -4319,12 +4319,12 @@ export class MatrixClient extends EventEmitter {
         reason?: string,
         callback?: Callback,
     ): Promise<{}> {
-        if (utils.isFunction(reason)) {
+        if (isFunction(reason)) {
             callback = reason as any as Callback; // legacy
             reason = undefined;
         }
 
-        const path = utils.encodeUri("/rooms/$room_id/$membership", {
+        const path = encodeUri("/rooms/$room_id/$membership", {
             $room_id: roomId,
             $membership: membership,
         });
@@ -4360,7 +4360,7 @@ export class MatrixClient extends EventEmitter {
     public setProfileInfo(info: "avatar_url", data: { avatar_url: string }, callback?: Callback): Promise<{}>;
     public setProfileInfo(info: "displayname", data: { displayname: string }, callback?: Callback): Promise<{}>;
     public setProfileInfo(info: "avatar_url" | "displayname", data: object, callback?: Callback): Promise<{}> {
-        const path = utils.encodeUri("/profile/$userId/$info", {
+        const path = encodeUri("/profile/$userId/$info", {
             $userId: this.credentials.userId,
             $info: info,
         });
@@ -4454,7 +4454,7 @@ export class MatrixClient extends EventEmitter {
      * @throws If 'presence' isn't a valid presence enum value.
      */
     public setPresence(opts: IPresenceOpts, callback?: Callback): Promise<void> {
-        const path = utils.encodeUri("/presence/$userId/status", {
+        const path = encodeUri("/presence/$userId/status", {
             $userId: this.credentials.userId,
         });
 
@@ -4478,7 +4478,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public getPresence(userId: string, callback?: Callback): Promise<unknown> { // TODO: Types
-        const path = utils.encodeUri("/presence/$userId/status", {
+        const path = encodeUri("/presence/$userId/status", {
             $userId: userId,
         });
 
@@ -4503,7 +4503,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public scrollback(room: Room, limit: number, callback?: Callback): Promise<Room> {
-        if (utils.isFunction(limit)) {
+        if (isFunction(limit)) {
             callback = limit as any as Callback; // legacy
             limit = undefined;
         }
@@ -4609,7 +4609,7 @@ export class MatrixClient extends EventEmitter {
             return Promise.resolve(timelineSet.getTimelineForEvent(eventId));
         }
 
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/rooms/$roomId/context/$eventId", {
                 $roomId: timelineSet.room.roomId,
                 $eventId: eventId,
@@ -4684,7 +4684,7 @@ export class MatrixClient extends EventEmitter {
         dir: Direction,
         timelineFilter?: Filter,
     ): Promise<IMessagesResponse> {
-        const path = utils.encodeUri("/rooms/$roomId/messages", { $roomId: roomId });
+        const path = encodeUri("/rooms/$roomId/messages", { $roomId: roomId });
         if (limit === undefined) {
             limit = 30;
         }
@@ -5215,7 +5215,7 @@ export class MatrixClient extends EventEmitter {
             } else if (!hasDontNotifyRule) {
                 // Remove the existing one before setting the mute push rule
                 // This is a workaround to SYN-590 (Push rule update fails)
-                deferred = utils.defer();
+                deferred = defer();
                 this.deletePushRule(scope, PushRuleKind.RoomSpecific, roomPushRule.rule_id)
                     .then(() => {
                         this.addPushRule(scope, PushRuleKind.RoomSpecific, roomId, {
@@ -5430,7 +5430,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public createFilter(content: IFilterDefinition): Promise<Filter> {
-        const path = utils.encodeUri("/user/$userId/filter", {
+        const path = encodeUri("/user/$userId/filter", {
             $userId: this.credentials.userId,
         });
         return this.http.authedRequest(undefined, "POST", path, undefined, content).then((response) => {
@@ -5460,7 +5460,7 @@ export class MatrixClient extends EventEmitter {
             }
         }
 
-        const path = utils.encodeUri("/user/$userId/filter/$filterId", {
+        const path = encodeUri("/user/$userId/filter/$filterId", {
             $userId: userId,
             $filterId: filterId,
         });
@@ -5495,7 +5495,7 @@ export class MatrixClient extends EventEmitter {
                     const oldDef = existingFilter.getDefinition();
                     const newDef = filter.getDefinition();
 
-                    if (utils.deepCompare(oldDef, newDef)) {
+                    if (deepCompare(oldDef, newDef)) {
                         // super, just use that.
                         // debuglog("Using existing filter ID %s: %s", filterId,
                         //          JSON.stringify(oldDef));
@@ -5540,7 +5540,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public getOpenIdToken(): Promise<IOpenIDToken> {
-        const path = utils.encodeUri("/user/$userId/openid/request_token", {
+        const path = encodeUri("/user/$userId/openid/request_token", {
             $userId: this.credentials.userId,
         });
 
@@ -5655,7 +5655,7 @@ export class MatrixClient extends EventEmitter {
      * @return {boolean} true if the user appears to be a Synapse administrator.
      */
     public isSynapseAdministrator(): Promise<boolean> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/_synapse/admin/v1/users/$userId/admin",
             { $userId: this.getUserId() },
         );
@@ -5672,7 +5672,7 @@ export class MatrixClient extends EventEmitter {
      * @return {object} the whois response - see Synapse docs for information.
      */
     public whoisSynapseUser(userId: string): Promise<ISynapseAdminWhoisResponse> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/_synapse/admin/v1/whois/$userId",
             { $userId: userId },
         );
@@ -5686,7 +5686,7 @@ export class MatrixClient extends EventEmitter {
      * @return {object} the deactivate response - see Synapse docs for information.
      */
     public deactivateSynapseUser(userId: string): Promise<ISynapseAdminDeactivateResponse> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/_synapse/admin/v1/deactivate/$userId",
             { $userId: userId },
         );
@@ -5741,7 +5741,7 @@ export class MatrixClient extends EventEmitter {
         if (!(await this.doesServerSupportUnstableFeature("uk.half-shot.msc2666"))) {
             throw Error('Server does not support shared_rooms API');
         }
-        const path = utils.encodeUri("/uk.half-shot.msc2666/user/shared_rooms/$userId", {
+        const path = encodeUri("/uk.half-shot.msc2666/user/shared_rooms/$userId", {
             $userId: userId,
         });
         const res = await this.http.authedRequest(
@@ -6049,7 +6049,7 @@ export class MatrixClient extends EventEmitter {
      * @param {string} url New identity server URL
      */
     public setIdentityServerUrl(url: string) {
-        this.idBaseUrl = utils.ensureNoTrailingSlash(url);
+        this.idBaseUrl = ensureNoTrailingSlash(url);
         this.http.setIdBaseUrl(this.idBaseUrl);
     }
 
@@ -6231,7 +6231,7 @@ export class MatrixClient extends EventEmitter {
         };
 
         // merge data into loginData
-        utils.extend(loginData, data);
+        extend(loginData, data);
 
         return this.http.authedRequest(
             (error, response) => {
@@ -6365,7 +6365,7 @@ export class MatrixClient extends EventEmitter {
      * @return {string} HS URL to hit to for the fallback interface
      */
     public getFallbackAuthUrl(loginType: string, authSessionId: string): string {
-        const path = utils.encodeUri("/auth/$loginType/fallback/web", {
+        const path = encodeUri("/auth/$loginType/fallback/web", {
             $loginType: loginType,
         });
 
@@ -6434,8 +6434,8 @@ export class MatrixClient extends EventEmitter {
         if (opts.from) {
             queryParams.from = opts.from;
         }
-        const queryString = utils.encodeParams(queryParams);
-        const path = utils.encodeUri(
+        const queryString = encodeParams(queryParams);
+        const path = encodeUri(
             "/rooms/$roomId/relations/$eventId/$relationType/$eventType?" + queryString, {
                 $roomId: roomId,
                 $eventId: eventId,
@@ -6456,7 +6456,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public roomState(roomId: string, callback?: Callback): Promise<IStateEventWithRoomId[]> {
-        const path = utils.encodeUri("/rooms/$roomId/state", { $roomId: roomId });
+        const path = encodeUri("/rooms/$roomId/state", { $roomId: roomId });
         return this.http.authedRequest(callback, "GET", path);
     }
 
@@ -6474,7 +6474,7 @@ export class MatrixClient extends EventEmitter {
         eventId: string,
         callback?: Callback,
     ): Promise<IMinimalEvent> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/rooms/$roomId/event/$eventId", {
                 $roomId: roomId,
                 $eventId: eventId,
@@ -6510,9 +6510,9 @@ export class MatrixClient extends EventEmitter {
             queryParams.at = atEventId;
         }
 
-        const queryString = utils.encodeParams(queryParams);
+        const queryString = encodeParams(queryParams);
 
-        const path = utils.encodeUri("/rooms/$roomId/members?" + queryString,
+        const path = encodeUri("/rooms/$roomId/members?" + queryString,
             { $roomId: roomId });
         return this.http.authedRequest(callback, "GET", path);
     }
@@ -6528,7 +6528,7 @@ export class MatrixClient extends EventEmitter {
         roomId: string,
         newVersion: string,
     ): Promise<{ replacement_room: string }> { // eslint-disable-line camelcase
-        const path = utils.encodeUri("/rooms/$roomId/upgrade", { $roomId: roomId });
+        const path = encodeUri("/rooms/$roomId/upgrade", { $roomId: roomId });
         return this.http.authedRequest(
             undefined, "POST", path, undefined, { new_version: newVersion },
         );
@@ -6554,9 +6554,9 @@ export class MatrixClient extends EventEmitter {
             $eventType: eventType,
             $stateKey: stateKey,
         };
-        let path = utils.encodeUri("/rooms/$roomId/state/$eventType", pathParams);
+        let path = encodeUri("/rooms/$roomId/state/$eventType", pathParams);
         if (stateKey !== undefined) {
-            path = utils.encodeUri(path + "/$stateKey", pathParams);
+            path = encodeUri(path + "/$stateKey", pathParams);
         }
         return this.http.authedRequest(
             callback, "GET", path,
@@ -6584,9 +6584,9 @@ export class MatrixClient extends EventEmitter {
             $eventType: eventType,
             $stateKey: stateKey,
         };
-        let path = utils.encodeUri("/rooms/$roomId/state/$eventType", pathParams);
+        let path = encodeUri("/rooms/$roomId/state/$eventType", pathParams);
         if (stateKey !== undefined) {
-            path = utils.encodeUri(path + "/$stateKey", pathParams);
+            path = encodeUri(path + "/$stateKey", pathParams);
         }
         return this.http.authedRequest(callback, "PUT", path, undefined, content);
     }
@@ -6599,11 +6599,11 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public roomInitialSync(roomId: string, limit: number, callback?: Callback): Promise<IRoomInitialSyncResponse> {
-        if (utils.isFunction(limit)) {
+        if (isFunction(limit)) {
             callback = limit as any as Callback; // legacy
             limit = undefined;
         }
-        const path = utils.encodeUri("/rooms/$roomId/initialSync",
+        const path = encodeUri("/rooms/$roomId/initialSync",
             { $roomId: roomId },
         );
         if (!limit) {
@@ -6635,7 +6635,7 @@ export class MatrixClient extends EventEmitter {
         rrEventId: string,
         opts: { hidden?: boolean },
     ): Promise<{}> {
-        const path = utils.encodeUri("/rooms/$roomId/read_markers", {
+        const path = encodeUri("/rooms/$roomId/read_markers", {
             $roomId: roomId,
         });
 
@@ -6653,7 +6653,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public getJoinedRooms(): Promise<string[]> {
-        const path = utils.encodeUri("/joined_rooms", {});
+        const path = encodeUri("/joined_rooms", {});
         return this.http.authedRequest(undefined, "GET", path);
     }
 
@@ -6665,7 +6665,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public getJoinedRoomMembers(roomId: string): Promise<IJoinedMembersResponse> {
-        const path = utils.encodeUri("/rooms/$roomId/joined_members", {
+        const path = encodeUri("/rooms/$roomId/joined_members", {
             $roomId: roomId,
         });
         return this.http.authedRequest(undefined, "GET", path);
@@ -6715,7 +6715,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public createAlias(alias: string, roomId: string, callback?: Callback): Promise<{}> {
-        const path = utils.encodeUri("/directory/room/$alias", {
+        const path = encodeUri("/directory/room/$alias", {
             $alias: alias,
         });
         const data = {
@@ -6733,7 +6733,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public deleteAlias(alias: string, callback?: Callback): Promise<{}> {
-        const path = utils.encodeUri("/directory/room/$alias", {
+        const path = encodeUri("/directory/room/$alias", {
             $alias: alias,
         });
         return this.http.authedRequest(callback, "DELETE", path, undefined, undefined);
@@ -6746,7 +6746,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public unstableGetLocalAliases(roomId: string, callback?: Callback): Promise<{ aliases: string[] }> {
-        const path = utils.encodeUri("/rooms/$roomId/aliases",
+        const path = encodeUri("/rooms/$roomId/aliases",
             { $roomId: roomId });
         const prefix = PREFIX_UNSTABLE + "/org.matrix.msc2432";
         return this.http.authedRequest(callback, "GET", path, null, null, { prefix });
@@ -6764,7 +6764,7 @@ export class MatrixClient extends EventEmitter {
         callback?: Callback,
     ): Promise<{ room_id: string, servers: string[] }> { // eslint-disable-line camelcase
         // TODO: deprecate this or resolveRoomAlias
-        const path = utils.encodeUri("/directory/room/$alias", {
+        const path = encodeUri("/directory/room/$alias", {
             $alias: alias,
         });
         return this.http.authedRequest(callback, "GET", path);
@@ -6779,7 +6779,7 @@ export class MatrixClient extends EventEmitter {
     // eslint-disable-next-line camelcase
     public resolveRoomAlias(roomAlias: string, callback?: Callback): Promise<{ room_id: string, servers: string[] }> {
         // TODO: deprecate this or getRoomIdForAlias
-        const path = utils.encodeUri("/directory/room/$alias", { $alias: roomAlias });
+        const path = encodeUri("/directory/room/$alias", { $alias: roomAlias });
         return this.http.request(callback, "GET", path);
     }
 
@@ -6791,7 +6791,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public getRoomDirectoryVisibility(roomId: string, callback?: Callback): Promise<{ visibility: Visibility }> {
-        const path = utils.encodeUri("/directory/list/room/$roomId", {
+        const path = encodeUri("/directory/list/room/$roomId", {
             $roomId: roomId,
         });
         return this.http.authedRequest(callback, "GET", path);
@@ -6808,7 +6808,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public setRoomDirectoryVisibility(roomId: string, visibility: Visibility, callback?: Callback): Promise<{}> {
-        const path = utils.encodeUri("/directory/list/room/$roomId", {
+        const path = encodeUri("/directory/list/room/$roomId", {
             $roomId: roomId,
         });
         return this.http.authedRequest(callback, "PUT", path, undefined, { visibility });
@@ -6833,7 +6833,7 @@ export class MatrixClient extends EventEmitter {
         visibility: "public" | "private",
         callback?: Callback,
     ): Promise<any> { // TODO: Types
-        const path = utils.encodeUri("/directory/list/appservice/$networkId/$roomId", {
+        const path = encodeUri("/directory/list/appservice/$networkId/$roomId", {
             $networkId: networkId,
             $roomId: roomId,
         });
@@ -6944,15 +6944,15 @@ export class MatrixClient extends EventEmitter {
         callback?: Callback,
         // eslint-disable-next-line camelcase
     ): Promise<{ avatar_url?: string, displayname?: string }> {
-        if (utils.isFunction(info)) {
+        if (isFunction(info)) {
             callback = info as any as Callback; // legacy
             info = undefined;
         }
 
         const path = info ?
-            utils.encodeUri("/profile/$userId/$info",
+            encodeUri("/profile/$userId/$info",
                 { $userId: userId, $info: info }) :
-            utils.encodeUri("/profile/$userId",
+            encodeUri("/profile/$userId",
                 { $userId: userId });
         return this.http.authedRequest(callback, "GET", path);
     }
@@ -7111,7 +7111,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public getDevice(deviceId: string): Promise<IMyDevice> {
-        const path = utils.encodeUri("/devices/$device_id", {
+        const path = encodeUri("/devices/$device_id", {
             $device_id: deviceId,
         });
         return this.http.authedRequest(undefined, 'GET', path, undefined, undefined);
@@ -7127,7 +7127,7 @@ export class MatrixClient extends EventEmitter {
      */
     // eslint-disable-next-line camelcase
     public setDeviceDetails(deviceId: string, body: { display_name: string }): Promise<{}> {
-        const path = utils.encodeUri("/devices/$device_id", {
+        const path = encodeUri("/devices/$device_id", {
             $device_id: deviceId,
         });
 
@@ -7143,7 +7143,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public deleteDevice(deviceId: string, auth?: any): Promise<any> { // TODO: Types
-        const path = utils.encodeUri("/devices/$device_id", {
+        const path = encodeUri("/devices/$device_id", {
             $device_id: deviceId,
         });
 
@@ -7229,7 +7229,7 @@ export class MatrixClient extends EventEmitter {
         callback?: Callback,
     ): Promise<any> { // TODO: Types
         // NB. Scope not uri encoded because devices need the '/'
-        const path = utils.encodeUri("/pushrules/" + scope + "/$kind/$ruleId", {
+        const path = encodeUri("/pushrules/" + scope + "/$kind/$ruleId", {
             $kind: kind,
             $ruleId: ruleId,
         });
@@ -7251,7 +7251,7 @@ export class MatrixClient extends EventEmitter {
         callback?: Callback,
     ): Promise<any> { // TODO: Types
         // NB. Scope not uri encoded because devices need the '/'
-        const path = utils.encodeUri("/pushrules/" + scope + "/$kind/$ruleId", {
+        const path = encodeUri("/pushrules/" + scope + "/$kind/$ruleId", {
             $kind: kind,
             $ruleId: ruleId,
         });
@@ -7275,7 +7275,7 @@ export class MatrixClient extends EventEmitter {
         enabled: boolean,
         callback?: Callback,
     ): Promise<{}> {
-        const path = utils.encodeUri("/pushrules/" + scope + "/$kind/$ruleId/enabled", {
+        const path = encodeUri("/pushrules/" + scope + "/$kind/$ruleId/enabled", {
             $kind: kind,
             $ruleId: ruleId,
         });
@@ -7301,7 +7301,7 @@ export class MatrixClient extends EventEmitter {
         actions: PushRuleAction[],
         callback?: Callback,
     ): Promise<{}> {
-        const path = utils.encodeUri("/pushrules/" + scope + "/$kind/$ruleId/actions", {
+        const path = encodeUri("/pushrules/" + scope + "/$kind/$ruleId/actions", {
             $kind: kind,
             $ruleId: ruleId,
         });
@@ -7374,7 +7374,7 @@ export class MatrixClient extends EventEmitter {
      *     an error response ({@link module:http-api.MatrixError}).
      */
     public downloadKeysForUsers(userIds: string[], opts: { token?: string }): Promise<IDownloadKeyResult> {
-        if (utils.isFunction(opts)) {
+        if (isFunction(opts)) {
             // opts used to be 'callback'.
             throw new Error('downloadKeysForUsers no longer accepts a callback parameter');
         }
@@ -7869,7 +7869,7 @@ export class MatrixClient extends EventEmitter {
         contentMap: { [userId: string]: { [deviceId: string]: Record<string, any> } },
         txnId?: string,
     ): Promise<{}> {
-        const path = utils.encodeUri("/sendToDevice/$eventType/$txnId", {
+        const path = encodeUri("/sendToDevice/$eventType/$txnId", {
             $eventType: eventType,
             $txnId: txnId ? txnId : this.makeTxnId(),
         });
@@ -7916,7 +7916,7 @@ export class MatrixClient extends EventEmitter {
         protocol: string,
         params: { searchFields?: string[] },
     ): Promise<IThirdPartyLocation[]> {
-        const path = utils.encodeUri("/thirdparty/location/$protocol", {
+        const path = encodeUri("/thirdparty/location/$protocol", {
             $protocol: protocol,
         });
 
@@ -7932,7 +7932,7 @@ export class MatrixClient extends EventEmitter {
      * @return {Promise} Resolves to the result object
      */
     public getThirdpartyUser(protocol: string, params: any): Promise<IThirdPartyUser[]> { // TODO: Types
-        const path = utils.encodeUri("/thirdparty/user/$protocol", {
+        const path = encodeUri("/thirdparty/user/$protocol", {
             $protocol: protocol,
         });
 
@@ -7966,7 +7966,7 @@ export class MatrixClient extends EventEmitter {
      * @returns {Promise} Resolves to an empty object if successful
      */
     public reportEvent(roomId: string, eventId: string, score: number, reason: string): Promise<{}> {
-        const path = utils.encodeUri("/rooms/$roomId/report/$eventId", {
+        const path = encodeUri("/rooms/$roomId/report/$eventId", {
             $roomId: roomId,
             $eventId: eventId,
         });
@@ -7995,7 +7995,7 @@ export class MatrixClient extends EventEmitter {
         rooms: ISpaceSummaryRoom[];
         events: ISpaceSummaryEvent[];
     }> {
-        const path = utils.encodeUri("/rooms/$roomId/spaces", {
+        const path = encodeUri("/rooms/$roomId/spaces", {
             $roomId: roomId,
         });
 
@@ -8090,7 +8090,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public getGroupSummary(groupId: string): Promise<any> {
-        const path = utils.encodeUri("/groups/$groupId/summary", { $groupId: groupId });
+        const path = encodeUri("/groups/$groupId/summary", { $groupId: groupId });
         return this.http.authedRequest(undefined, "GET", path);
     }
 
@@ -8101,7 +8101,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public getGroupProfile(groupId: string): Promise<any> {
-        const path = utils.encodeUri("/groups/$groupId/profile", { $groupId: groupId });
+        const path = encodeUri("/groups/$groupId/profile", { $groupId: groupId });
         return this.http.authedRequest(undefined, "GET", path);
     }
 
@@ -8117,7 +8117,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public setGroupProfile(groupId: string, profile: any): Promise<any> {
-        const path = utils.encodeUri("/groups/$groupId/profile", { $groupId: groupId });
+        const path = encodeUri("/groups/$groupId/profile", { $groupId: groupId });
         return this.http.authedRequest(
             undefined, "POST", path, undefined, profile,
         );
@@ -8134,7 +8134,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public setGroupJoinPolicy(groupId: string, policy: any): Promise<any> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/groups/$groupId/settings/m.join_policy",
             { $groupId: groupId },
         );
@@ -8152,7 +8152,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public getGroupUsers(groupId: string): Promise<any> {
-        const path = utils.encodeUri("/groups/$groupId/users", { $groupId: groupId });
+        const path = encodeUri("/groups/$groupId/users", { $groupId: groupId });
         return this.http.authedRequest(undefined, "GET", path);
     }
 
@@ -8163,7 +8163,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public getGroupInvitedUsers(groupId: string): Promise<any> {
-        const path = utils.encodeUri("/groups/$groupId/invited_users", { $groupId: groupId });
+        const path = encodeUri("/groups/$groupId/invited_users", { $groupId: groupId });
         return this.http.authedRequest(undefined, "GET", path);
     }
 
@@ -8174,7 +8174,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public getGroupRooms(groupId: string): Promise<any> {
-        const path = utils.encodeUri("/groups/$groupId/rooms", { $groupId: groupId });
+        const path = encodeUri("/groups/$groupId/rooms", { $groupId: groupId });
         return this.http.authedRequest(undefined, "GET", path);
     }
 
@@ -8186,7 +8186,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public inviteUserToGroup(groupId: string, userId: string): Promise<any> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/groups/$groupId/admin/users/invite/$userId",
             { $groupId: groupId, $userId: userId },
         );
@@ -8201,7 +8201,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public removeUserFromGroup(groupId: string, userId: string): Promise<any> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/groups/$groupId/admin/users/remove/$userId",
             { $groupId: groupId, $userId: userId },
         );
@@ -8217,7 +8217,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public addUserToGroupSummary(groupId: string, userId: string, roleId: string): Promise<any> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             roleId ?
                 "/groups/$groupId/summary/$roleId/users/$userId" :
                 "/groups/$groupId/summary/users/$userId",
@@ -8234,7 +8234,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public removeUserFromGroupSummary(groupId: string, userId: string): Promise<any> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/groups/$groupId/summary/users/$userId",
             { $groupId: groupId, $userId: userId },
         );
@@ -8250,7 +8250,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public addRoomToGroupSummary(groupId: string, roomId: string, categoryId: string): Promise<any> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             categoryId ?
                 "/groups/$groupId/summary/$categoryId/rooms/$roomId" :
                 "/groups/$groupId/summary/rooms/$roomId",
@@ -8267,7 +8267,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public removeRoomFromGroupSummary(groupId: string, roomId: string): Promise<any> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/groups/$groupId/summary/rooms/$roomId",
             { $groupId: groupId, $roomId: roomId },
         );
@@ -8286,7 +8286,7 @@ export class MatrixClient extends EventEmitter {
         if (isPublic === undefined) {
             isPublic = true;
         }
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/groups/$groupId/admin/rooms/$roomId",
             { $groupId: groupId, $roomId: roomId },
         );
@@ -8309,7 +8309,7 @@ export class MatrixClient extends EventEmitter {
         //     is the only server to implement this. In future we should consider an API that allows
         //     arbitrary configuration, i.e. "config/$configKey".
 
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/groups/$groupId/admin/rooms/$roomId/config/m.visibility",
             { $groupId: groupId, $roomId: roomId },
         );
@@ -8326,7 +8326,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public removeRoomFromGroup(groupId: string, roomId: string): Promise<any> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/groups/$groupId/admin/rooms/$roomId",
             { $groupId: groupId, $roomId: roomId },
         );
@@ -8341,7 +8341,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public acceptGroupInvite(groupId: string, opts = null): Promise<any> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/groups/$groupId/self/accept_invite",
             { $groupId: groupId },
         );
@@ -8355,7 +8355,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public joinGroup(groupId: string): Promise<any> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/groups/$groupId/self/join",
             { $groupId: groupId },
         );
@@ -8369,7 +8369,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public leaveGroup(groupId: string): Promise<any> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/groups/$groupId/self/leave",
             { $groupId: groupId },
         );
@@ -8382,7 +8382,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public getJoinedGroups(): Promise<any> {
-        const path = utils.encodeUri("/joined_groups", {});
+        const path = encodeUri("/joined_groups", {});
         return this.http.authedRequest(undefined, "GET", path);
     }
 
@@ -8395,7 +8395,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public createGroup(content: any): Promise<any> {
-        const path = utils.encodeUri("/create_group", {});
+        const path = encodeUri("/create_group", {});
         return this.http.authedRequest(
             undefined, "POST", path, undefined, content,
         );
@@ -8416,7 +8416,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public getPublicisedGroups(userIds: string[]): Promise<any> {
-        const path = utils.encodeUri("/publicised_groups", {});
+        const path = encodeUri("/publicised_groups", {});
         return this.http.authedRequest(
             undefined, "POST", path, undefined, { user_ids: userIds },
         );
@@ -8430,7 +8430,7 @@ export class MatrixClient extends EventEmitter {
      * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
      */
     public setGroupPublicity(groupId: string, isPublic: boolean): Promise<any> {
-        const path = utils.encodeUri(
+        const path = encodeUri(
             "/groups/$groupId/self/update_publicity",
             { $groupId: groupId },
         );

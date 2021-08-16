@@ -21,7 +21,7 @@ limitations under the License.
  * @module store/session/webstorage
  */
 
-import * as utils from "../../utils";
+import { isFunction } from "../../utils";
 import { logger } from '../../logger';
 
 const DEBUG = false;  // set true to enable console logging.
@@ -38,10 +38,10 @@ const E2E_PREFIX = "session.e2e.";
  */
 export function WebStorageSessionStore(webStore) {
     this.store = webStore;
-    if (!utils.isFunction(webStore.getItem) ||
-        !utils.isFunction(webStore.setItem) ||
-        !utils.isFunction(webStore.removeItem) ||
-        !utils.isFunction(webStore.key) ||
+    if (!isFunction(webStore.getItem) ||
+        !isFunction(webStore.setItem) ||
+        !isFunction(webStore.removeItem) ||
+        !isFunction(webStore.key) ||
         typeof(webStore.length) !== 'number'
        ) {
         throw new Error(
