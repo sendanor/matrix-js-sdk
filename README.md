@@ -1,5 +1,5 @@
-Matrix Javascript SDK
-=====================
+Matrix Javascript SDK (Native TypeScript fork for embedded use case)
+====================================================================
 
 This is the [Matrix](https://matrix.org) Client-Server r0 SDK for
 JavaScript. This SDK can be run in a browser or in Node.js.
