@@ -25,7 +25,7 @@ import { EventEmitter } from 'events';
 import { logger } from '../logger';
 import { DeviceInfo, IDevice } from './deviceinfo';
 import { CrossSigningInfo, ICrossSigningInfo } from './CrossSigning';
-import * as olmlib from './olmlib';
+import { OLM_ALGORITHM, MEGOLM_ALGORITHM, verifySignature } from './olmlib';
 import { IndexedDBCryptoStore } from './store/indexeddb-crypto-store';
 import { chunkPromises, defer, IDeferred, sleep } from '../utils';
 import { MatrixClient } from "../client";
@@ -398,8 +398,8 @@ export class DeviceList extends EventEmitter {
      */
     public getUserByIdentityKey(algorithm: string, senderKey: string): string {
         if (
-            algorithm !== olmlib.OLM_ALGORITHM &&
-            algorithm !== olmlib.MEGOLM_ALGORITHM
+            algorithm !== OLM_ALGORITHM &&
+            algorithm !== MEGOLM_ALGORITHM
         ) {
             // we only deal in olm keys
             return null;
@@ -953,7 +953,7 @@ async function storeDeviceKeys(
     const signatures = deviceResult.signatures || {};
 
     try {
-        await olmlib.verifySignature(olmDevice, deviceResult, userId, deviceId, signKey);
+        await verifySignature(olmDevice, deviceResult, userId, deviceId, signKey);
     } catch (e) {
         logger.warn("Unable to verify signature on device " + userId + ":" + deviceId + ":" + e);
         return false;

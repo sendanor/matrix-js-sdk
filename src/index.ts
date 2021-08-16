@@ -31,3 +31,4 @@ try {
 
 export * from "./matrix";
 export default matrixcs;
+export { ICryptoCallbacks } from "./types/ICryptoCallbacks";

@@ -24,12 +24,12 @@ import { Crypto, IBootstrapCrossSigningOpts } from "./index";
 import {
     CrossSigningKeys,
     ICrossSigningKey,
-    ICryptoCallbacks,
     ISignedKey,
     KeySignatures,
 } from "../matrix";
 import { ISecretStorageKeyInfo } from "./api";
 import { IKeyBackupInfo } from "./keybackup";
+import { ICryptoCallbacks } from "../types/ICryptoCallbacks";
 
 interface ICrossSigningKeys {
     authUpload: IBootstrapCrossSigningOpts["authUploadDeviceSigningKeys"];

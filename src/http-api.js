@@ -27,7 +27,10 @@ import { logger } from './logger';
 // we use our own implementation of setTimeout, so that if we get suspended in
 // the middle of a /sync, we cancel the sync as soon as we awake, rather than
 // waiting for the delay to elapse.
-import * as callbacks from "./realtime-callbacks";
+import {
+    setTimeout as callbacks_setTimeout,
+    clearTimeout as callbacks_clearTimeout
+} from "./realtime-callbacks";
 
 /*
 TODO:
@@ -268,13 +271,13 @@ MatrixHttpApi.prototype = {
 
             // set an initial timeout of 30s; we'll advance it each time we get
             // a progress notification
-            xhr.timeout_timer = callbacks.setTimeout(timeout_fn, 30000);
+            xhr.timeout_timer = callbacks_setTimeout(timeout_fn, 30000);
 
             xhr.onreadystatechange = function() {
                 let resp;
                 switch (xhr.readyState) {
                     case global.XMLHttpRequest.DONE:
-                        callbacks.clearTimeout(xhr.timeout_timer);
+                        callbacks_clearTimeout(xhr.timeout_timer);
                         try {
                             if (xhr.status === 0) {
                                 throw new AbortError();
@@ -296,10 +299,10 @@ MatrixHttpApi.prototype = {
                 }
             };
             xhr.upload.addEventListener("progress", function(ev) {
-                callbacks.clearTimeout(xhr.timeout_timer);
+                callbacks_clearTimeout(xhr.timeout_timer);
                 upload.loaded = ev.loaded;
                 upload.total = ev.total;
-                xhr.timeout_timer = callbacks.setTimeout(timeout_fn, 30000);
+                xhr.timeout_timer = callbacks_setTimeout(timeout_fn, 30000);
                 if (opts.progressHandler) {
                     opts.progressHandler({
                         loaded: ev.loaded,
@@ -693,9 +696,9 @@ MatrixHttpApi.prototype = {
         const resetTimeout = () => {
             if (localTimeoutMs) {
                 if (timeoutId) {
-                    callbacks.clearTimeout(timeoutId);
+                    callbacks_clearTimeout(timeoutId);
                 }
-                timeoutId = callbacks.setTimeout(function() {
+                timeoutId = callbacks_setTimeout(function() {
                     timedOut = true;
                     if (req && req.abort) {
                         req.abort();
@@ -729,7 +732,7 @@ MatrixHttpApi.prototype = {
                 },
                 function(err, response, body) {
                     if (localTimeoutMs) {
-                        callbacks.clearTimeout(timeoutId);
+                        callbacks_clearTimeout(timeoutId);
                         if (timedOut) {
                             return; // already rejected promise
                         }

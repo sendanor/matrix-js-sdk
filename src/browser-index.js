@@ -52,3 +52,4 @@ if (indexedDB) {
 export * from "./matrix";
 export default matrixcs; // keep export for browserify package deps
 global.matrixcs = matrixcs;
+export {ICryptoCallbacks} from "./types/ICryptoCallbacks";

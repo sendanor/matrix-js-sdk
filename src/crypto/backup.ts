@@ -20,7 +20,6 @@ limitations under the License.
  * Classes for dealing with key backup.
  */
 
-import { MatrixClient } from "../client";
 import { logger } from "../logger";
 import { MEGOLM_ALGORITHM, verifySignature } from "./olmlib";
 import { DeviceInfo } from "./deviceinfo";
@@ -33,6 +32,8 @@ import { encryptAES, decryptAES, calculateKeyCheck } from './aes';
 import { getCrypto } from '../utils';
 import { ICurve25519AuthData, IAes256AuthData, IKeyBackupInfo, IKeyBackupSession } from "./keybackup";
 import { UnstableValue } from "../NamespacedValue";
+import { IMatrixClient } from "../types/IMatrixClient";
+import { RESTORE_BACKUP_ERROR_BAD_KEY } from "../constants/client-constants";
 
 const KEY_BACKUP_KEYS_PER_REQUEST = 200;
 
@@ -109,7 +110,7 @@ export class BackupManager {
     public backupInfo: IKeyBackupInfo | undefined; // The info dict from /room_keys/version
     public checkedForBackup: boolean; // Have we checked the server for a backup we can use?
     private sendingBackups: boolean; // Are we currently sending backups?
-    constructor(private readonly baseApis: MatrixClient, public readonly getKey: GetKey) {
+    constructor(private readonly baseApis: IMatrixClient, public readonly getKey: GetKey) {
         this.checkedForBackup = false;
         this.sendingBackups = false;
     }
@@ -653,7 +654,7 @@ export class Curve25519 implements BackupAlgorithm {
 
             if (backupPubKey !== this.authData.public_key) {
                 // eslint-disable-next-line no-throw-literal
-                throw { errcode: MatrixClient.RESTORE_BACKUP_ERROR_BAD_KEY };
+                throw { errcode: RESTORE_BACKUP_ERROR_BAD_KEY };
             }
 
             const keys = [];

@@ -26,14 +26,22 @@ import { StubStore } from "./store/stub";
 import { createNewMatrixCall, MatrixCall } from "./webrtc/call";
 import { Filter, IFilterDefinition } from "./filter";
 import { CallEventHandler } from './webrtc/callEventHandler';
-import { ensureNoTrailingSlash, encodeUri, isFunction, deepCopy, defer, deepCompare, encodeParams, extend } from './utils';
-import { sleep } from './utils';
+import {
+    deepCompare,
+    deepCopy,
+    defer,
+    encodeParams,
+    encodeUri,
+    ensureNoTrailingSlash,
+    extend,
+    isFunction,
+    sleep
+} from './utils';
 import { Group } from "./models/group";
 import { Direction, EventTimeline } from "./models/event-timeline";
 import { IActionsObject, PushProcessor } from "./pushprocessor";
 import { AutoDiscovery } from "./autodiscovery";
-import * as olmlib from "./crypto/olmlib";
-import { decodeBase64, encodeBase64 } from "./crypto/olmlib";
+import { decodeBase64, encodeBase64, MEGOLM_ALGORITHM } from "./crypto/olmlib";
 import { ReEmitter } from './ReEmitter';
 import { IRoomEncryption, RoomList } from './crypto/RoomList';
 import { logger } from './logger';
@@ -45,7 +53,7 @@ import {
     PREFIX_MEDIA_R0,
     PREFIX_R0,
     PREFIX_UNSTABLE,
-    retryNetworkOperation,
+    retryNetworkOperation
 } from "./http-api";
 import {
     Crypto,
@@ -54,7 +62,7 @@ import {
     ICheckOwnCrossSigningTrustOpts,
     IMegolmSessionData,
     isCryptoAvailable,
-    VerificationMethod,
+    VerificationMethod
 } from './crypto';
 import { DeviceInfo, IDevice } from "./crypto/deviceinfo";
 import { decodeRecoveryKey } from './crypto/recoverykey';
@@ -67,19 +75,18 @@ import {
     IDehydratedDevice,
     IDehydratedDeviceKeyInfo,
     IDeviceKeys,
-    IOneTimeKey,
+    IOneTimeKey
 } from "./crypto/dehydration";
 import {
     IKeyBackupInfo,
     IKeyBackupPrepareOpts,
     IKeyBackupRestoreOpts,
     IKeyBackupRestoreResult,
-    IKeyBackupSession,
+    IKeyBackupSession
 } from "./crypto/keybackup";
 import { IIdentityServerProvider } from "./@types/IIdentityServerProvider";
 import type Request from "request";
 import { MatrixScheduler } from "./scheduler";
-import { ICryptoCallbacks, IMinimalEvent, IRoomEvent, IStateEvent, NotificationCountType } from "./matrix";
 import {
     CrossSigningKey,
     IAddSecretStorageKeyOpts,
@@ -87,14 +94,26 @@ import {
     IEncryptedEventInfo,
     IImportRoomKeysOpts,
     IRecoveryKey,
-    ISecretStorageKeyInfo,
+    ISecretStorageKeyInfo
 } from "./crypto/api";
 import { SyncState } from "./sync.api";
 import { EventTimelineSet } from "./models/event-timeline-set";
 import { VerificationRequest } from "./crypto/verification/request/VerificationRequest";
 import { Base as Verification } from "./crypto/verification/Base";
-import * as ContentHelpers from "./content-helpers";
-import { CrossSigningInfo, DeviceTrustLevel, ICacheCallbacks, UserTrustLevel } from "./crypto/CrossSigning";
+import {
+    makeEmoteMessage,
+    makeHtmlEmote,
+    makeHtmlMessage,
+    makeHtmlNotice,
+    makeNotice,
+    makeTextMessage
+} from "./content-helpers";
+import {
+    CrossSigningInfo,
+    DeviceTrustLevel,
+    ICacheCallbacks,
+    UserTrustLevel
+} from "./crypto/CrossSigning";
 import { Room } from "./models/room";
 import {
     IAddThreePidOnlyBody,
@@ -109,7 +128,7 @@ import {
     IRoomDirectoryOptions,
     ISearchOpts,
     ISendEventResponse,
-    IUploadOpts,
+    IUploadOpts
 } from "./@types/requests";
 import {
     EventType,
@@ -119,14 +138,26 @@ import {
     RoomType,
     UNSTABLE_MSC3088_ENABLED,
     UNSTABLE_MSC3088_PURPOSE,
-    UNSTABLE_MSC3089_TREE_SUBTYPE,
+    UNSTABLE_MSC3089_TREE_SUBTYPE
 } from "./@types/event";
-import { IAbortablePromise, IdServerUnbindResult, IImageInfo, Preset, Visibility } from "./@types/partials";
+import {
+    IAbortablePromise,
+    IdServerUnbindResult,
+    IImageInfo,
+    Preset,
+    Visibility
+} from "./@types/partials";
 import { EventMapper, eventMapperFor, MapperOpts } from "./event-mapper";
 import { randomString } from "./randomstring";
 import { ReadStream } from "fs";
 import { WebStorageSessionStore } from "./store/session/webstorage";
-import { BackupManager, IKeyBackup, IKeyBackupCheck, IPreparedKeyBackupVersion, TrustInfo } from "./crypto/backup";
+import {
+    BackupManager,
+    IKeyBackup,
+    IKeyBackupCheck,
+    IPreparedKeyBackupVersion,
+    TrustInfo
+} from "./crypto/backup";
 import { DEFAULT_TREE_POWER_LEVELS_TEMPLATE, MSC3089TreeSpace } from "./models/MSC3089TreeSpace";
 import { ISignatures } from "./@types/signed";
 import { IStore } from "./store";
@@ -137,13 +168,29 @@ import {
     ISearchResponse,
     ISearchResults,
     IStateEventWithRoomId,
-    SearchOrderBy,
+    SearchOrderBy
 } from "./@types/search";
 import { ISynapseAdminDeactivateResponse, ISynapseAdminWhoisResponse } from "./@types/synapse";
 import { ISpaceSummaryEvent, ISpaceSummaryRoom } from "./@types/spaces";
-import { IPusher, IPusherRequest, IPushRules, PushRuleAction, PushRuleKind, RuleId } from "./@types/PushRules";
+import {
+    IPusher,
+    IPusherRequest,
+    IPushRules,
+    PushRuleAction,
+    PushRuleKind,
+    RuleId
+} from "./@types/PushRules";
 import { IThreepid } from "./@types/threepids";
 import { CryptoStore } from "./crypto/store/base";
+import { PendingEventOrdering } from "./types/pendingEventOrdering";
+import { ICapabilities } from "./types/ICapabilities";
+import { IMatrixClient } from "./types/IMatrixClient";
+import { RESTORE_BACKUP_ERROR_BAD_KEY } from "./constants/client-constants";
+import { ICryptoCallbacks } from "./types/ICryptoCallbacks";
+import { NotificationCountType } from "./models/types/NotificationCountType";
+import { IStateEvent } from "./types/IStateEvent";
+import { IRoomEvent } from "./types/IRoomEvent";
+import { IMinimalEvent } from "./types/IMinimalEvent";
 
 export type Store = IStore;
 export type SessionStore = WebStorageSessionStore;
@@ -244,10 +291,10 @@ export interface ICreateClientOpts {
 
     /**
      * Set to true to enable
-     * improved timeline support ({@link module:client~MatrixClient#getEventTimeline getEventTimeline}). It is
-     * disabled by default for compatibility with older clients - in particular to
-     * maintain support for back-paginating the live timeline after a '/sync'
-     * result with a gap.
+     * improved timeline support
+     * ({@link module:client~MatrixClient#getEventTimeline getEventTimeline}). It is disabled by
+     * default for compatibility with older clients - in particular to maintain support for
+     * back-paginating the live timeline after a '/sync' result with a gap.
      */
     timelineSupport?: boolean;
 
@@ -302,7 +349,8 @@ export interface ICreateClientOpts {
     iceCandidatePoolSize?: number;
 
     /**
-     * True to advertise support for call transfers to other parties on Matrix calls. Default false.
+     * True to advertise support for call transfers to other parties on Matrix calls. Default
+     * false.
      */
     supportsCallTransfer?: boolean;
 
@@ -324,11 +372,6 @@ export interface IMatrixClientCreateOpts extends ICreateClientOpts {
     usingExternalCrypto?: boolean;
 }
 
-export enum PendingEventOrdering {
-    Chronological = "chronological",
-    Detached = "detached",
-}
-
 export interface IStartClientOpts {
     /**
      * The event <code>limit=</code> to apply to initial sync. Default: 8.
@@ -336,20 +379,22 @@ export interface IStartClientOpts {
     initialSyncLimit?: number;
 
     /**
-     * True to put <code>archived=true</code> on the <code>/initialSync</code> request. Default: false.
+     * True to put <code>archived=true</code> on the <code>/initialSync</code> request. Default:
+     * false.
      */
     includeArchivedRooms?: boolean;
 
     /**
-     * True to do /profile requests on every invite event if the displayname/avatar_url is not known for this user ID. Default: false.
+     * True to do /profile requests on every invite event if the displayname/avatar_url is not
+     * known for this user ID. Default: false.
      */
     resolveInvitesToProfiles?: boolean;
 
     /**
-     * Controls where pending messages appear in a room's timeline. If "<b>chronological</b>", messages will
-     * appear in the timeline when the call to <code>sendEvent</code> was made. If "<b>detached</b>",
-     * pending messages will appear in a separate list, accessbile via {@link module:models/room#getPendingEvents}.
-     * Default: "chronological".
+     * Controls where pending messages appear in a room's timeline. If "<b>chronological</b>",
+     * messages will appear in the timeline when the call to <code>sendEvent</code> was made. If
+     * "<b>detached</b>", pending messages will appear in a separate list, accessbile via
+     * {@link module:models/room#getPendingEvents}. Default: "chronological".
      */
     pendingEventOrdering?: PendingEventOrdering;
 
@@ -359,8 +404,8 @@ export interface IStartClientOpts {
     pollTimeout?: number;
 
     /**
-     * The filter to apply to /sync calls. This will override the opts.initialSyncLimit, which would
-     * normally result in a timeline limit filter.
+     * The filter to apply to /sync calls. This will override the opts.initialSyncLimit, which
+     * would normally result in a timeline limit filter.
      */
     filter?: Filter;
 
@@ -370,7 +415,8 @@ export interface IStartClientOpts {
     disablePresence?: boolean;
 
     /**
-     * True to not load all membership events during initial sync but fetch them when needed by calling
+     * True to not load all membership events during initial sync but fetch them when needed by
+     * calling
      * `loadOutOfBandMembers` This will override the filter option at this moment.
      */
     lazyLoadMembers?: boolean;
@@ -387,30 +433,13 @@ export interface IStoredClientOpts extends IStartClientOpts {
     canResetEntireTimeline: ResetTimelineCallback;
 }
 
-export enum RoomVersionStability {
-    Stable = "stable",
-    Unstable = "unstable",
-}
-
 export interface IRoomCapability { // MSC3244
     preferred: string | null;
     support: string[];
 }
 
-export interface IRoomVersionsCapability {
-    default: string;
-    available: Record<string, RoomVersionStability>;
-    "org.matrix.msc3244.room_capabilities"?: Record<string, IRoomCapability>; // MSC3244
-}
-
 export interface IChangePasswordCapability {
     enabled: boolean;
-}
-
-interface ICapabilities {
-    [key: string]: any;
-    "m.change_password"?: IChangePasswordCapability;
-    "m.room_versions"?: IRoomVersionsCapability;
 }
 
 /* eslint-disable camelcase */
@@ -669,8 +698,8 @@ interface IThirdPartyUser {
  * custom modules. Normally, {@link createClient} should be used
  * as it specifies 'sensible' defaults for these modules.
  */
-export class MatrixClient extends EventEmitter {
-    public static readonly RESTORE_BACKUP_ERROR_BAD_KEY = 'RESTORE_BACKUP_ERROR_BAD_KEY';
+export class MatrixClient extends EventEmitter implements IMatrixClient {
+    public static readonly RESTORE_BACKUP_ERROR_BAD_KEY = RESTORE_BACKUP_ERROR_BAD_KEY;
 
     public reEmitter = new ReEmitter(this);
     public olmVersion: string = null; // populated after initCrypto
@@ -1669,8 +1698,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} userId the user to request verification with
      * @param {string} roomId the room to use for verification
      *
-     * @returns {Promise<module:crypto/verification/request/VerificationRequest>} resolves to a VerificationRequest
-     *    when the request has been sent to the other party.
+     * @returns {Promise<module:crypto/verification/request/VerificationRequest>} resolves to a
+     *     VerificationRequest when the request has been sent to the other party.
      */
     public requestVerificationDM(userId: string, roomId: string): Promise<VerificationRequest> {
         if (!this.crypto) {
@@ -1684,7 +1713,8 @@ export class MatrixClient extends EventEmitter {
      *
      * @param {string} roomId the room to use for verification
      *
-     * @returns {module:crypto/verification/request/VerificationRequest?} the VerificationRequest that is in progress, if any
+     * @returns {module:crypto/verification/request/VerificationRequest?} the VerificationRequest
+     *     that is in progress, if any
      */
     public findVerificationRequestDMInProgress(roomId: string): VerificationRequest {
         if (!this.crypto) {
@@ -1694,11 +1724,13 @@ export class MatrixClient extends EventEmitter {
     }
 
     /**
-     * Returns all to-device verification requests that are already in progress for the given user id
+     * Returns all to-device verification requests that are already in progress for the given user
+     * id
      *
      * @param {string} userId the ID of the user to query
      *
-     * @returns {module:crypto/verification/request/VerificationRequest[]} the VerificationRequests that are in progress
+     * @returns {module:crypto/verification/request/VerificationRequest[]} the
+     *     VerificationRequests that are in progress
      */
     public getVerificationRequestsToDeviceInProgress(userId: string): VerificationRequest[] {
         if (!this.crypto) {
@@ -1714,8 +1746,8 @@ export class MatrixClient extends EventEmitter {
      * @param {Array} devices array of device IDs to send requests to.  Defaults to
      *    all devices owned by the user
      *
-     * @returns {Promise<module:crypto/verification/request/VerificationRequest>} resolves to a VerificationRequest
-     *    when the request has been sent to the other party.
+     * @returns {Promise<module:crypto/verification/request/VerificationRequest>} resolves to a
+     *     VerificationRequest when the request has been sent to the other party.
      */
     public requestVerification(userId: string, devices?: string[]): Promise<VerificationRequest> {
         if (!this.crypto) {
@@ -2087,7 +2119,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} algorithm the algorithm used by the key
      * @param {object} opts the options for the algorithm.  The properties used
      *     depend on the algorithm given.
-     * @param {string} [keyName] the name of the key.  If not given, a random name will be generated.
+     * @param {string} [keyName] the name of the key.  If not given, a random name will be
+     *     generated.
      *
      * @return {object} An object with:
      *     keyId: {string} the ID of the key
@@ -2406,10 +2439,8 @@ export class MatrixClient extends EventEmitter {
     /**
      * @param {object} info key backup info dict from getKeyBackupVersion()
      * @return {object} {
-     *     usable: [bool], // is the backup trusted, true iff there is a sig that is valid & from a trusted device
-     *     sigs: [
-     *         valid: [bool],
-     *         device: [DeviceInfo],
+     *     usable: [bool], // is the backup trusted, true iff there is a sig that is valid & from
+     *     a trusted device sigs: [ valid: [bool], device: [DeviceInfo],
      *     ]
      * }
      */
@@ -2931,7 +2962,8 @@ export class MatrixClient extends EventEmitter {
      * has been emitted.
      * @param {string} groupId The group ID
      * @return {Group} The Group or null if the group is not known or there is no data store.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public getGroup(groupId: string): Group {
         return this.store.getGroup(groupId);
@@ -2940,7 +2972,8 @@ export class MatrixClient extends EventEmitter {
     /**
      * Retrieve all known groups.
      * @return {Group[]} A list of groups, or an empty list if there is no data store.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public getGroups(): Group[] {
         return this.store.getGroups();
@@ -3134,8 +3167,10 @@ export class MatrixClient extends EventEmitter {
      * @param {boolean} opts.syncRoom True to do a room initial sync on the resulting
      * room. If false, the <strong>returned Room object will have no current state.
      * </strong> Default: true.
-     * @param {boolean} opts.inviteSignUrl If the caller has a keypair 3pid invite, the signing URL is passed in this parameter.
-     * @param {string[]} opts.viaServers The server names to try and join through in addition to those that are automatically chosen.
+     * @param {boolean} opts.inviteSignUrl If the caller has a keypair 3pid invite, the signing
+     *     URL is passed in this parameter.
+     * @param {string[]} opts.viaServers The server names to try and join through in addition to
+     *     those that are automatically chosen.
      * @param {module:client.callback} callback Optional.
      * @return {Promise} Resolves: Room object.
      * @return {module:http-api.MatrixError} Rejects: with an error response.
@@ -3379,7 +3414,8 @@ export class MatrixClient extends EventEmitter {
 
     /**
      * @param {string} roomId
-     * @param {object} eventObject An object with the partial structure of an event, to which event_id, user_id, room_id and origin_server_ts will be added.
+     * @param {object} eventObject An object with the partial structure of an event, to which
+     *     event_id, user_id, room_id and origin_server_ts will be added.
      * @param {string} txnId the txnId.
      * @param {module:client.callback} callback Optional.
      * @return {Promise} Resolves: to an empty object {}
@@ -3447,7 +3483,8 @@ export class MatrixClient extends EventEmitter {
     }
 
     /**
-     * encrypts the event if necessary; adds the event to the queue, or sends it; marks the event as sent/unsent
+     * encrypts the event if necessary; adds the event to the queue, or sends it; marks the event
+     * as sent/unsent
      * @param room
      * @param event
      * @param callback
@@ -3678,7 +3715,7 @@ export class MatrixClient extends EventEmitter {
         txnId?: string,
         callback?: Callback,
     ): Promise<ISendEventResponse> {
-        const content = ContentHelpers.makeTextMessage(body);
+        const content = makeTextMessage(body);
         return this.sendMessage(roomId, content, txnId, callback);
     }
 
@@ -3691,7 +3728,7 @@ export class MatrixClient extends EventEmitter {
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public sendNotice(roomId: string, body: string, txnId?: string, callback?: Callback): Promise<ISendEventResponse> {
-        const content = ContentHelpers.makeNotice(body);
+        const content = makeNotice(body);
         return this.sendMessage(roomId, content, txnId, callback);
     }
 
@@ -3709,7 +3746,7 @@ export class MatrixClient extends EventEmitter {
         txnId?: string,
         callback?: Callback,
     ): Promise<ISendEventResponse> {
-        const content = ContentHelpers.makeEmoteMessage(body);
+        const content = makeEmoteMessage(body);
         return this.sendMessage(roomId, content, txnId, callback);
     }
 
@@ -3784,7 +3821,7 @@ export class MatrixClient extends EventEmitter {
         htmlBody: string,
         callback?: Callback,
     ): Promise<ISendEventResponse> {
-        const content = ContentHelpers.makeHtmlMessage(body, htmlBody);
+        const content = makeHtmlMessage(body, htmlBody);
         return this.sendMessage(roomId, content, undefined, callback);
     }
 
@@ -3802,7 +3839,7 @@ export class MatrixClient extends EventEmitter {
         htmlBody: string,
         callback?: Callback,
     ): Promise<ISendEventResponse> {
-        const content = ContentHelpers.makeHtmlNotice(body, htmlBody);
+        const content = makeHtmlNotice(body, htmlBody);
         return this.sendMessage(roomId, content, undefined, callback);
     }
 
@@ -3820,7 +3857,7 @@ export class MatrixClient extends EventEmitter {
         htmlBody: string,
         callback?: Callback,
     ): Promise<ISendEventResponse> {
-        const content = ContentHelpers.makeHtmlEmote(body, htmlBody);
+        const content = makeHtmlEmote(body, htmlBody);
         return this.sendMessage(roomId, content, undefined, callback);
     }
 
@@ -4575,7 +4612,8 @@ export class MatrixClient extends EventEmitter {
 
     /**
      * @param {object} [options]
-     * @param {boolean} options.preventReEmit don't re-emit events emitted on an event mapped by this mapper on the client
+     * @param {boolean} options.preventReEmit don't re-emit events emitted on an event mapped by
+     *     this mapper on the client
      * @param {boolean} options.decrypt decrypt event proactively
      * @return {Function}
      */
@@ -5926,15 +5964,18 @@ export class MatrixClient extends EventEmitter {
 
     /**
      * Returns relations for a given event. Handles encryption transparently,
-     * with the caveat that the amount of events returned might be 0, even though you get a nextBatch.
-     * When the returned promise resolves, all messages should have finished trying to decrypt.
+     * with the caveat that the amount of events returned might be 0, even though you get a
+     * nextBatch. When the returned promise resolves, all messages should have finished trying to
+     * decrypt.
      * @param {string} roomId the room of the event
      * @param {string} eventId the id of the event
      * @param {string} relationType the rel_type of the relations requested
      * @param {string} eventType the event type of the relations requested
      * @param {Object} opts options with optional values for the request.
-     * @param {Object} opts.from the pagination token returned from a previous request as `nextBatch` to return following relations.
-     * @return {Object} an object with `events` as `MatrixEvent[]` and optionally `nextBatch` if more relations are available.
+     * @param {Object} opts.from the pagination token returned from a previous request as
+     *     `nextBatch` to return following relations.
+     * @return {Object} an object with `events` as `MatrixEvent[]` and optionally `nextBatch` if
+     *     more relations are available.
      */
     public async relations(
         roomId: string,
@@ -6420,7 +6461,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} relationType the rel_type of the relations requested
      * @param {string} eventType the event type of the relations requested
      * @param {Object} opts options with optional values for the request.
-     * @param {Object} opts.from the pagination token returned from a previous request as `next_batch` to return following relations.
+     * @param {Object} opts.from the pagination token returned from a previous request as
+     *     `next_batch` to return following relations.
      * @return {Object} the response, with chunk and next_batch.
      */
     public async fetchRelations(
@@ -6487,7 +6529,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} roomId
      * @param {string} includeMembership the membership type to include in the response
      * @param {string} excludeMembership the membership type to exclude from the response
-     * @param {string} atEventId the id of the event for which moment in the timeline the members should be returned for
+     * @param {string} atEventId the id of the event for which moment in the timeline the members
+     *     should be returned for
      * @param {module:client.callback} callback Optional.
      * @return {Promise} Resolves: dictionary of userid to profile information
      * @return {module:http-api.MatrixError} Rejects: with an error response.
@@ -6742,7 +6785,8 @@ export class MatrixClient extends EventEmitter {
     /**
      * @param {string} roomId
      * @param {module:client.callback} callback Optional.
-     * @return {Promise} Resolves: an object with an `aliases` property, containing an array of local aliases
+     * @return {Promise} Resolves: an object with an `aliases` property, containing an array of
+     *     local aliases
      * @return {module:http-api.MatrixError} Rejects: with an error response.
      */
     public unstableGetLocalAliases(roomId: string, callback?: Callback): Promise<{ aliases: string[] }> {
@@ -7958,10 +8002,12 @@ export class MatrixClient extends EventEmitter {
     }
 
     /**
-     * Reports an event as inappropriate to the server, which may then notify the appropriate people.
+     * Reports an event as inappropriate to the server, which may then notify the appropriate
+     * people.
      * @param {string} roomId The room in which the event being reported is located.
      * @param {string} eventId The event to report.
-     * @param {number} score The score to rate this content as where -100 is most offensive and 0 is inoffensive.
+     * @param {number} score The score to rate this content as where -100 is most offensive and 0
+     *     is inoffensive.
      * @param {string} reason The reason the content is being reported. May be blank.
      * @returns {Promise} Resolves to an empty object if successful
      */
@@ -8044,7 +8090,7 @@ export class MatrixClient extends EventEmitter {
                     type: EventType.RoomEncryption,
                     state_key: "",
                     content: {
-                        algorithm: olmlib.MEGOLM_ALGORITHM,
+                        algorithm: MEGOLM_ALGORITHM,
                     },
                 },
             ],
@@ -8087,7 +8133,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} groupId
      * @return {Promise} Resolves: Group summary object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public getGroupSummary(groupId: string): Promise<any> {
         const path = encodeUri("/groups/$groupId/summary", { $groupId: groupId });
@@ -8098,7 +8145,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} groupId
      * @return {Promise} Resolves: Group profile object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public getGroupProfile(groupId: string): Promise<any> {
         const path = encodeUri("/groups/$groupId/profile", { $groupId: groupId });
@@ -8114,7 +8162,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string=} profile.long_description A longer HTML description of the room
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public setGroupProfile(groupId: string, profile: any): Promise<any> {
         const path = encodeUri("/groups/$groupId/profile", { $groupId: groupId });
@@ -8131,7 +8180,8 @@ export class MatrixClient extends EventEmitter {
      *     required to join.
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public setGroupJoinPolicy(groupId: string, policy: any): Promise<any> {
         const path = encodeUri(
@@ -8149,7 +8199,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} groupId
      * @return {Promise} Resolves: Group users list object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public getGroupUsers(groupId: string): Promise<any> {
         const path = encodeUri("/groups/$groupId/users", { $groupId: groupId });
@@ -8160,7 +8211,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} groupId
      * @return {Promise} Resolves: Group users list object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public getGroupInvitedUsers(groupId: string): Promise<any> {
         const path = encodeUri("/groups/$groupId/invited_users", { $groupId: groupId });
@@ -8171,7 +8223,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} groupId
      * @return {Promise} Resolves: Group rooms list object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public getGroupRooms(groupId: string): Promise<any> {
         const path = encodeUri("/groups/$groupId/rooms", { $groupId: groupId });
@@ -8183,7 +8236,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} userId
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public inviteUserToGroup(groupId: string, userId: string): Promise<any> {
         const path = encodeUri(
@@ -8198,7 +8252,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} userId
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public removeUserFromGroup(groupId: string, userId: string): Promise<any> {
         const path = encodeUri(
@@ -8214,7 +8269,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} roleId Optional.
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public addUserToGroupSummary(groupId: string, userId: string, roleId: string): Promise<any> {
         const path = encodeUri(
@@ -8231,7 +8287,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} userId
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public removeUserFromGroupSummary(groupId: string, userId: string): Promise<any> {
         const path = encodeUri(
@@ -8247,7 +8304,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} categoryId Optional.
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public addRoomToGroupSummary(groupId: string, roomId: string, categoryId: string): Promise<any> {
         const path = encodeUri(
@@ -8264,7 +8322,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} roomId
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public removeRoomFromGroupSummary(groupId: string, roomId: string): Promise<any> {
         const path = encodeUri(
@@ -8280,7 +8339,8 @@ export class MatrixClient extends EventEmitter {
      * @param {boolean} isPublic Whether the room-group association is visible to non-members
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public addRoomToGroup(groupId: string, roomId: string, isPublic: boolean): Promise<any> {
         if (isPublic === undefined) {
@@ -8302,7 +8362,8 @@ export class MatrixClient extends EventEmitter {
      * @param {boolean} isPublic Whether the room-group association is visible to non-members
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public updateGroupRoomVisibility(groupId: string, roomId: string, isPublic: boolean): Promise<any> {
         // NB: The /config API is generic but there's not much point in exposing this yet as synapse
@@ -8323,7 +8384,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} roomId
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public removeRoomFromGroup(groupId: string, roomId: string): Promise<any> {
         const path = encodeUri(
@@ -8338,7 +8400,8 @@ export class MatrixClient extends EventEmitter {
      * @param {Object} opts Additional options to send alongside the acceptance.
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public acceptGroupInvite(groupId: string, opts = null): Promise<any> {
         const path = encodeUri(
@@ -8352,7 +8415,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} groupId
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public joinGroup(groupId: string): Promise<any> {
         const path = encodeUri(
@@ -8366,7 +8430,8 @@ export class MatrixClient extends EventEmitter {
      * @param {string} groupId
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public leaveGroup(groupId: string): Promise<any> {
         const path = encodeUri(
@@ -8379,7 +8444,8 @@ export class MatrixClient extends EventEmitter {
     /**
      * @return {Promise} Resolves: The groups to which the user is joined
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public getJoinedGroups(): Promise<any> {
         const path = encodeUri("/joined_groups", {});
@@ -8392,7 +8458,8 @@ export class MatrixClient extends EventEmitter {
      * @param {Object} content.profile Group profile object
      * @return {Promise} Resolves: Object with key group_id: id of the created group
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public createGroup(content: any): Promise<any> {
         const path = encodeUri("/create_group", {});
@@ -8413,7 +8480,8 @@ export class MatrixClient extends EventEmitter {
      *         }
      *     }
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public getPublicisedGroups(userIds: string[]): Promise<any> {
         const path = encodeUri("/publicised_groups", {});
@@ -8427,7 +8495,8 @@ export class MatrixClient extends EventEmitter {
      * @param {boolean} isPublic Whether the user's membership of this group is made public
      * @return {Promise} Resolves: Empty object
      * @return {module:http-api.MatrixError} Rejects: with an error response.
-     * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+     * @deprecated groups/communities never made it to the spec and support for them is being
+     *     discontinued.
      */
     public setGroupPublicity(groupId: string, isPublic: boolean): Promise<any> {
         const path = encodeUri(
@@ -8592,7 +8661,8 @@ export class MatrixClient extends EventEmitter {
  * is experimental and may change.</strong>
  * @event module:client~MatrixClient#"Group"
  * @param {Group} group The newly created, fully populated group.
- * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+ * @deprecated groups/communities never made it to the spec and support for them is being
+ *     discontinued.
  * @example
  * matrixClient.on("Group", function(group){
  *   var groupId = group.groupId;

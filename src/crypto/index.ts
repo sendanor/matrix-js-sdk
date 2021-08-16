@@ -27,10 +27,23 @@ import { EventEmitter } from 'events';
 import { ReEmitter } from '../ReEmitter';
 import { logger } from '../logger';
 import { OlmDevice } from "./OlmDevice";
-import * as olmlib from "./olmlib";
+import {
+    decodeBase64,
+    encodeBase64,
+    verifySignature,
+    IOlmSessionResult,
+    ensureOlmSessionsForDevices,
+    OLM_ALGORITHM,
+    MEGOLM_ALGORITHM,
+    encryptMessageForDevice
+} from "./olmlib";
 import { DeviceInfoMap, DeviceList } from "./DeviceList";
 import { DeviceInfo, IDevice } from "./deviceinfo";
-import * as algorithms from "./algorithms";
+import {
+    DECRYPTION_CLASSES,
+    ENCRYPTION_CLASSES,
+    DecryptionError
+} from "./algorithms";
 import { createCryptoStoreCacheCallbacks, CrossSigningInfo, DeviceTrustLevel, UserTrustLevel } from './CrossSigning';
 import { EncryptionSetupBuilder } from "./EncryptionSetup";
 import {
@@ -343,7 +356,7 @@ export class Crypto extends EventEmitter {
                     await this.storeSecret("m.megolm_backup.v1", fixedKey, [keyId]);
                 }
 
-                return olmlib.decodeBase64(fixedKey || storedKey);
+                return decodeBase64(fixedKey || storedKey);
             }
 
             // try to get key from app
@@ -362,7 +375,7 @@ export class Crypto extends EventEmitter {
         this.deviceList.on('userCrossSigningUpdated', this.onDeviceListUserCrossSigningUpdated);
         this.reEmitter.reEmit(this.deviceList, ["crypto.devicesUpdated", "crypto.willUpdateDevices"]);
 
-        this.supportedAlgorithms = Object.keys(algorithms.DECRYPTION_CLASSES);
+        this.supportedAlgorithms = Object.keys(DECRYPTION_CLASSES);
 
         this.outgoingRoomKeyRequestManager = new OutgoingRoomKeyRequestManager(
             baseApis, this.deviceId, this.cryptoStore,
@@ -897,7 +910,7 @@ export class Crypto extends EventEmitter {
 
             // store the backup key in secret storage
             await secretStorage.store(
-                "m.megolm_backup.v1", olmlib.encodeBase64(backupKey), [newKeyId],
+                "m.megolm_backup.v1", encodeBase64(backupKey), [newKeyId],
             );
 
             // The backup is trusted because the user provided the private key.
@@ -943,7 +956,7 @@ export class Crypto extends EventEmitter {
             );
             // write the key ourselves to 4S
             const privateKey = decodeRecoveryKey(info.recovery_key);
-            await secretStorage.store("m.megolm_backup.v1", olmlib.encodeBase64(privateKey));
+            await secretStorage.store("m.megolm_backup.v1", encodeBase64(privateKey));
 
             // create keyBackupInfo object to add to builder
             const data: IKeyBackupInfo = {
@@ -972,7 +985,7 @@ export class Crypto extends EventEmitter {
                     fixedBackupKey, [newKeyId || oldKeyId],
                 );
             }
-            const decodedBackupKey = new Uint8Array(olmlib.decodeBase64(
+            const decodedBackupKey = new Uint8Array(decodeBase64(
                 fixedBackupKey || sessionBackupKey,
             ));
             await builder.addSessionBackupPrivateKeyToCache(decodedBackupKey);
@@ -989,7 +1002,7 @@ export class Crypto extends EventEmitter {
                 return;
             }
             logger.info("Got session backup key from cache/user that wasn't in SSSS: saving to SSSS");
-            await secretStorage.store("m.megolm_backup.v1", olmlib.encodeBase64(backupKey));
+            await secretStorage.store("m.megolm_backup.v1", encodeBase64(backupKey));
         }
 
         const operation = builder.buildOperation();
@@ -1093,13 +1106,13 @@ export class Crypto extends EventEmitter {
 
         // make sure we have a Uint8Array, rather than a string
         if (key && typeof key === "string") {
-            key = new Uint8Array(olmlib.decodeBase64(fixBackupKey(key) || key));
+            key = new Uint8Array(decodeBase64(fixBackupKey(key) || key));
             await this.storeSessionBackupPrivateKey(key);
         }
         if (key && key.ciphertext) {
             const pickleKey = Buffer.from(this.olmDevice._pickleKey);
             const decrypted = await decryptAES(key, pickleKey, "m.megolm_backup.v1");
-            key = olmlib.decodeBase64(decrypted);
+            key = decodeBase64(decrypted);
         }
         return key;
     }
@@ -1114,7 +1127,7 @@ export class Crypto extends EventEmitter {
             throw new Error(`storeSessionBackupPrivateKey expects Uint8Array, got ${key}`);
         }
         const pickleKey = Buffer.from(this.olmDevice._pickleKey);
-        const encryptedKey = await encryptAES(olmlib.encodeBase64(key), pickleKey, "m.megolm_backup.v1");
+        const encryptedKey = await encryptAES(encodeBase64(key), pickleKey, "m.megolm_backup.v1");
         return this.cryptoStore.doTxn(
             'readwrite',
             [IndexedDBCryptoStore.STORE_ACCOUNT],
@@ -1282,7 +1295,7 @@ export class Crypto extends EventEmitter {
                 if (deviceId in devices
                     && devices[deviceId].verified === DeviceVerification.VERIFIED) {
                     try {
-                        await olmlib.verifySignature(
+                        await verifySignature(
                             this.olmDevice,
                             key,
                             userId,
@@ -2517,7 +2530,7 @@ export class Crypto extends EventEmitter {
             storeConfigPromise = this.roomList.setRoomEncryption(roomId, config);
         }
 
-        const AlgClass = algorithms.ENCRYPTION_CLASSES[config.algorithm];
+        const AlgClass = ENCRYPTION_CLASSES[config.algorithm];
         if (!AlgClass) {
             throw new Error("Unable to encrypt with " + config.algorithm);
         }
@@ -2598,7 +2611,7 @@ export class Crypto extends EventEmitter {
      *    an Object mapping from userId to deviceId to
      *    {@link module:crypto~OlmSessionResult}
      */
-    ensureOlmSessionsForUsers(users: string[]): Promise<Record<string, Record<string, olmlib.IOlmSessionResult>>> {
+    ensureOlmSessionsForUsers(users: string[]): Promise<Record<string, Record<string, IOlmSessionResult>>> {
         const devicesByUser = {};
 
         for (let i = 0; i < users.length; ++i) {
@@ -2623,7 +2636,7 @@ export class Crypto extends EventEmitter {
             }
         }
 
-        return olmlib.ensureOlmSessionsForDevices(this.olmDevice, this.baseApis, devicesByUser);
+        return ensureOlmSessionsForDevices(this.olmDevice, this.baseApis, devicesByUser);
     }
 
     /**
@@ -2642,7 +2655,7 @@ export class Crypto extends EventEmitter {
                         s.senderKey, s.sessionId, s.sessionData,
                     );
                     delete sess.first_known_index;
-                    sess.algorithm = olmlib.MEGOLM_ALGORITHM;
+                    sess.algorithm = MEGOLM_ALGORITHM;
                     exportedSessions.push(sess);
                 });
             },
@@ -3236,7 +3249,7 @@ export class Crypto extends EventEmitter {
         // update the events to show a message indicating that the olm session was
         // wedged.
         const retryDecryption = () => {
-            const roomDecryptors = this.getRoomDecryptors(olmlib.MEGOLM_ALGORITHM);
+            const roomDecryptors = this.getRoomDecryptors(MEGOLM_ALGORITHM);
             for (const decryptor of roomDecryptors) {
                 decryptor.retryDecryptionFromSender(deviceKey);
             }
@@ -3282,7 +3295,7 @@ export class Crypto extends EventEmitter {
         }
         const devicesByUser = {};
         devicesByUser[sender] = [device];
-        await olmlib.ensureOlmSessionsForDevices(this.olmDevice, this.baseApis, devicesByUser, true);
+        await ensureOlmSessionsForDevices(this.olmDevice, this.baseApis, devicesByUser, true);
 
         this.lastNewSessionForced[sender][deviceKey] = Date.now();
 
@@ -3293,11 +3306,11 @@ export class Crypto extends EventEmitter {
         // then get the keyshare request and send the key over this new session (because it
         // is the session it has most recently received a message on).
         const encryptedContent = {
-            algorithm: olmlib.OLM_ALGORITHM,
+            algorithm: OLM_ALGORITHM,
             sender_key: this.olmDevice.deviceCurve25519Key,
             ciphertext: {},
         };
-        await olmlib.encryptMessageForDevice(
+        await encryptMessageForDevice(
             encryptedContent.ciphertext,
             this.userId,
             this.deviceId,
@@ -3574,9 +3587,9 @@ export class Crypto extends EventEmitter {
             }
         }
 
-        const AlgClass = algorithms.DECRYPTION_CLASSES[algorithm];
+        const AlgClass = DECRYPTION_CLASSES[algorithm];
         if (!AlgClass) {
-            throw new algorithms.DecryptionError(
+            throw new DecryptionError(
                 'UNKNOWN_ENCRYPTION_ALGORITHM',
                 'Unknown encryption algorithm "' + algorithm + '".',
             );
@@ -3648,7 +3661,7 @@ export function fixBackupKey(key: string): string | null {
         return null;
     }
     const fixedKey = Uint8Array.from(key.split(","), x => parseInt(x));
-    return olmlib.encodeBase64(fixedKey);
+    return encodeBase64(fixedKey);
 }
 
 /**

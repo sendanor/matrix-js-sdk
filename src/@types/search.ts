@@ -16,9 +16,10 @@ limitations under the License.
 
 // Types relating to the /search API
 
-import { IRoomEvent, IStateEvent } from "../sync-accumulator";
 import { IRoomEventFilter } from "../filter";
 import { SearchResult } from "../models/search-result";
+import { IRoomEvent } from "../types/IRoomEvent";
+import { IStateEvent } from "../types/IStateEvent";
 
 /* eslint-disable camelcase */
 export interface IEventWithRoomId extends IRoomEvent {

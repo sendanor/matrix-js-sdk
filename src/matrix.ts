@@ -1,26 +1,23 @@
 /*
-Copyright 2015-2021 The Matrix.org Foundation C.I.C.
+ Copyright 2015-2021 The Matrix.org Foundation C.I.C.
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+ http://www.apache.org/licenses/LICENSE-2.0
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ */
 
 import { MemoryCryptoStore } from "./crypto/store/memory-crypto-store";
 import { MemoryStore } from "./store/memory";
 import { MatrixScheduler } from "./scheduler";
-import { MatrixClient } from "./client";
-import { ICreateClientOpts } from "./client";
-import { DeviceTrustLevel } from "./crypto/CrossSigning";
-import { ISecretStorageKeyInfo } from "./crypto/api";
+import { ICreateClientOpts, MatrixClient } from "./client";
 
 export * from "./client";
 export * from "./http-api";
@@ -100,29 +97,6 @@ export function setCryptoStoreFactory(fac) {
     cryptoStoreFactory = fac;
 }
 
-export interface ICryptoCallbacks {
-    getCrossSigningKey?: (keyType: string, pubKey: string) => Promise<Uint8Array>;
-    saveCrossSigningKeys?: (keys: Record<string, Uint8Array>) => void;
-    shouldUpgradeDeviceVerifications?: (
-        users: Record<string, any>
-    ) => Promise<string[]>;
-    getSecretStorageKey?: (
-        keys: {keys: Record<string, ISecretStorageKeyInfo>}, name: string
-    ) => Promise<[string, Uint8Array] | null>;
-    cacheSecretStorageKey?: (
-        keyId: string, keyInfo: ISecretStorageKeyInfo, key: Uint8Array
-    ) => void;
-    onSecretRequested?: (
-        userId: string, deviceId: string,
-        requestId: string, secretName: string, deviceTrust: DeviceTrustLevel
-    ) => Promise<string>;
-    getDehydrationKey?: (
-        keyInfo: ISecretStorageKeyInfo,
-        checkFunc: (Uint8Array) => void,
-    ) => Promise<Uint8Array>;
-    getBackupKey?: () => Promise<Uint8Array>;
-}
-
 /**
  * Construct a Matrix Client. Similar to {@link module:client.MatrixClient}
  * except that the 'request', 'store' and 'scheduler' dependencies are satisfied.
@@ -199,3 +173,11 @@ export function createClient(opts: ICreateClientOpts | string) {
   * <code>{statusCode: {Number}, headers: {Object}}</code>
   * @param {Object} body The parsed HTTP response body.
   */
+export { IRoomVersionsCapability } from "./types/IRoomVersionsCapability";
+export { RoomVersionStability } from "./types/roomVersionStability";
+export { PendingEventOrdering } from "./types/pendingEventOrdering";
+export { ICapabilities } from "./types/ICapabilities";
+export { IMinimalEvent } from "./types/IMinimalEvent";
+export { IRoomEvent } from "./types/IRoomEvent";
+export { IStateEvent } from "./types/IStateEvent";
+export { NotificationCountType } from "./models/types/NotificationCountType";

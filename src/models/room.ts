@@ -23,17 +23,26 @@ import { EventEmitter } from "events";
 import { EventTimelineSet } from "./event-timeline-set";
 import { EventTimeline } from "./event-timeline";
 import { getHttpUriForMxc } from "../content-repo";
-import { removeElement, encodeParams, normalize, encodeUri, compare } from "../utils";
+import { compare, encodeParams, encodeUri, normalize, removeElement } from "../utils";
 import { EventStatus, IEvent, MatrixEvent } from "./event";
 import { RoomMember } from "./room-member";
 import { IRoomSummary, RoomSummary } from "./room-summary";
 import { logger } from '../logger';
 import { ReEmitter } from '../ReEmitter';
-import { EventType, RoomCreateTypeField, RoomType, UNSTABLE_ELEMENT_FUNCTIONAL_USERS } from "../@types/event";
-import { IRoomVersionsCapability, MatrixClient, PendingEventOrdering, RoomVersionStability } from "../client";
+import {
+    EventType,
+    RoomCreateTypeField,
+    RoomType,
+    UNSTABLE_ELEMENT_FUNCTIONAL_USERS
+} from "../@types/event";
 import { ResizeMethod } from "../@types/partials";
 import { Filter } from "../filter";
 import { RoomState } from "./room-state";
+import { IRoomVersionsCapability } from "../types/IRoomVersionsCapability";
+import { RoomVersionStability } from "../types/roomVersionStability";
+import { PendingEventOrdering } from "../types/pendingEventOrdering";
+import { IMatrixClient } from "../types/IMatrixClient";
+import { NotificationCountType } from "./types/NotificationCountType";
 
 // These constants are used as sane defaults when the homeserver doesn't support
 // the m.room_versions capability. In practice, KNOWN_SAFE_ROOM_VERSION should be
@@ -101,11 +110,6 @@ interface IReceiptContent {
 }
 
 type Receipts = Record<string, Record<string, IWrappedReceipt>>;
-
-export enum NotificationCountType {
-    Highlight = "highlight",
-    Total = "total",
-}
 
 export class Room extends EventEmitter {
     private readonly reEmitter: ReEmitter;
@@ -207,7 +211,7 @@ export class Room extends EventEmitter {
      */
     constructor(
         public readonly roomId: string,
-        public readonly client: MatrixClient,
+        public readonly client: IMatrixClient,
         public readonly myUserId: string,
         private readonly opts: IOpts = {},
     ) {
@@ -1428,7 +1432,8 @@ export class Room extends EventEmitter {
      * which are just kept detached for their local echo.
      *
      * Also note that live events are aggregated in the live EventTimelineSet.
-     * @param {module:models/event.MatrixEvent} event the relation event that needs to be aggregated.
+     * @param {module:models/event.MatrixEvent} event the relation event that needs to be
+     *     aggregated.
      */
     private aggregateNonLiveRelation(event: MatrixEvent): void {
         // TODO: We should consider whether this means it would be a better
@@ -1977,7 +1982,8 @@ export class Room extends EventEmitter {
     }
 
     /**
-     * Returns the type of the room from the `m.room.create` event content or undefined if none is set
+     * Returns the type of the room from the `m.room.create` event content or undefined if none is
+     * set
      * @returns {?string} the type of the room. Currently only RoomType.Space is known.
      */
     public getType(): RoomType | string | undefined {

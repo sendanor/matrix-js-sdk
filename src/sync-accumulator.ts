@@ -21,17 +21,15 @@ limitations under the License.
 
 import { logger } from './logger';
 import { deepCopy } from "./utils";
-import { IContent, IUnsigned } from "./models/event";
+import { IContent } from "./models/event";
 import { IRoomSummary } from "./models/room-summary";
 import { EventType } from "./@types/event";
+import { IMinimalEvent } from "./types/IMinimalEvent";
+import { IRoomEvent } from "./types/IRoomEvent";
+import { IStateEvent } from "./types/IStateEvent";
 
 interface IOpts {
     maxTimelineEntries?: number;
-}
-
-export interface IMinimalEvent {
-    content: IContent;
-    type: EventType | string;
 }
 
 export interface IEphemeral {
@@ -42,20 +40,6 @@ export interface IEphemeral {
 interface IUnreadNotificationCounts {
     highlight_count?: number;
     notification_count?: number;
-}
-
-export interface IRoomEvent extends IMinimalEvent {
-    event_id: string;
-    sender: string;
-    origin_server_ts: number;
-    unsigned?: IUnsigned;
-    /** @deprecated - legacy field */
-    age?: number;
-}
-
-export interface IStateEvent extends IRoomEvent {
-    prev_content?: IContent;
-    state_key: string;
 }
 
 interface IState {

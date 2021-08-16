@@ -21,7 +21,10 @@ limitations under the License.
  */
 
 import { logger } from '../../logger';
-import * as olmlib from "../olmlib";
+import {
+    OLM_ALGORITHM,
+    encryptMessageForDevice
+} from "../olmlib";
 import { DeviceInfo } from "../deviceinfo";
 import {
     DecryptionAlgorithm,
@@ -111,7 +114,7 @@ class OlmEncryption extends EncryptionAlgorithm {
         };
 
         const encryptedContent = {
-            algorithm: olmlib.OLM_ALGORITHM,
+            algorithm: OLM_ALGORITHM,
             sender_key: this.olmDevice.deviceCurve25519Key,
             ciphertext: {},
         };
@@ -135,7 +138,7 @@ class OlmEncryption extends EncryptionAlgorithm {
                 }
 
                 promises.push(
-                    olmlib.encryptMessageForDevice(
+                    encryptMessageForDevice(
                         encryptedContent.ciphertext,
                         this.userId, this.deviceId, this.olmDevice,
                         userId, deviceInfo, payloadFields,
@@ -352,4 +355,4 @@ class OlmDecryption extends DecryptionAlgorithm {
     }
 }
 
-registerAlgorithm(olmlib.OLM_ALGORITHM, OlmEncryption, OlmDecryption);
+registerAlgorithm(OLM_ALGORITHM, OlmEncryption, OlmDecryption);

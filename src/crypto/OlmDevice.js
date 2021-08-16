@@ -16,9 +16,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { logger } from '../logger';
-import { IndexedDBCryptoStore } from './store/indexeddb-crypto-store';
-import * as algorithms from './algorithms';
+import {logger} from "../logger";
+import {IndexedDBCryptoStore} from "./store/indexeddb-crypto-store";
+import {DecryptionError} from "./algorithms";
+import {WITHHELD_MESSAGES} from "./types/WITHHELD_MESSAGES";
 
 // The maximum size of an event is 65K, and we base64 the content, so this is a
 // reasonable approximation to the biggest plaintext we can encrypt.
@@ -1137,13 +1138,6 @@ OlmDevice.prototype.addInboundGroupSessionWithheld = async function(
     );
 };
 
-export const WITHHELD_MESSAGES = {
-    "m.unverified": "The sender has disabled encrypting to unverified devices.",
-    "m.blacklisted": "The sender has blocked you.",
-    "m.unauthorised": "You are not authorised to read the message.",
-    "m.no_olm": "Unable to establish a secure channel.",
-};
-
 /**
  * Calculate the message to use for the exception when a session key is withheld.
  *
@@ -1198,7 +1192,7 @@ OlmDevice.prototype.decryptGroupMessage = async function(
                 roomId, senderKey, sessionId, txn, (session, sessionData, withheld) => {
                     if (session === null) {
                         if (withheld) {
-                            error = new algorithms.DecryptionError(
+                            error = new DecryptionError(
                                 "MEGOLM_UNKNOWN_INBOUND_SESSION_ID",
                                 _calculateWithheldMessage(withheld),
                                 {
@@ -1214,7 +1208,7 @@ OlmDevice.prototype.decryptGroupMessage = async function(
                         res = session.decrypt(body);
                     } catch (e) {
                         if (e && e.message === 'OLM.UNKNOWN_MESSAGE_INDEX' && withheld) {
-                            error = new algorithms.DecryptionError(
+                            error = new DecryptionError(
                                 "MEGOLM_UNKNOWN_INBOUND_SESSION_ID",
                                 _calculateWithheldMessage(withheld),
                                 {

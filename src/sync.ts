@@ -24,7 +24,7 @@ limitations under the License.
  */
 
 import { User } from "./models/user";
-import { NotificationCountType, Room } from "./models/room";
+import { Room } from "./models/room";
 import { Group } from "./models/group";
 import { IDeferred, deepCopy, promiseMapSeries, defer } from "./utils";
 import { Filter } from "./filter";
@@ -32,7 +32,7 @@ import { EventTimeline } from "./models/event-timeline";
 import { PushProcessor } from "./pushprocessor";
 import { logger } from './logger';
 import { InvalidStoreError } from './errors';
-import { IStoredClientOpts, MatrixClient, PendingEventOrdering } from "./client";
+import { IStoredClientOpts, MatrixClient} from "./client";
 import { SyncState } from "./sync.api";
 import {
     Category,
@@ -40,19 +40,22 @@ import {
     IInviteState,
     IJoinedRoom,
     ILeftRoom,
-    IStateEvent,
-    IRoomEvent,
     IStrippedState,
     ISyncResponse,
     ITimeline,
     IEphemeral,
-    IMinimalEvent,
+
 } from "./sync-accumulator";
 import { MatrixEvent } from "./models/event";
 import { MatrixError } from "./http-api";
 import { ISavedSync } from "./store";
 import { EventType } from "./@types/event";
 import { IPushRules } from "./@types/PushRules";
+import { PendingEventOrdering } from "./types/pendingEventOrdering";
+import { IMinimalEvent } from "./types/IMinimalEvent";
+import { IRoomEvent } from "./types/IRoomEvent";
+import { IStateEvent } from "./types/IStateEvent";
+import { NotificationCountType } from "./models/types/NotificationCountType";
 
 const DEBUG = true;
 

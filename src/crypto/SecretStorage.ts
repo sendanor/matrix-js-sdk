@@ -15,13 +15,13 @@ limitations under the License.
 */
 
 import { logger } from '../logger';
-import * as olmlib from './olmlib';
 import { randomString } from '../randomstring';
 import { encryptAES, decryptAES, IEncryptedPayload, calculateKeyCheck } from './aes';
-import { encodeBase64 } from "./olmlib";
-import { ICryptoCallbacks, MatrixClient, MatrixEvent } from '../matrix';
+import { encodeBase64, OLM_ALGORITHM, ensureOlmSessionsForDevices, encryptMessageForDevice } from "./olmlib";
+import { MatrixClient, MatrixEvent } from '../matrix';
 import { IAddSecretStorageKeyOpts, ISecretStorageKeyInfo } from './api';
 import { EventEmitter } from 'stream';
+import { ICryptoCallbacks } from "../types/ICryptoCallbacks";
 
 export const SECRET_STORAGE_ALGORITHM_V1_AES = "m.secret_storage.v1.aes-hmac-sha2";
 
@@ -493,11 +493,11 @@ export class SecretStorage {
                     },
                 };
                 const encryptedContent = {
-                    algorithm: olmlib.OLM_ALGORITHM,
+                    algorithm: OLM_ALGORITHM,
                     sender_key: this.baseApis.crypto.olmDevice.deviceCurve25519Key,
                     ciphertext: {},
                 };
-                await olmlib.ensureOlmSessionsForDevices(
+                await ensureOlmSessionsForDevices(
                     this.baseApis.crypto.olmDevice,
                     this.baseApis,
                     {
@@ -506,7 +506,7 @@ export class SecretStorage {
                         ],
                     },
                 );
-                await olmlib.encryptMessageForDevice(
+                await encryptMessageForDevice(
                     encryptedContent.ciphertext,
                     this.baseApis.getUserId(),
                     this.baseApis.deviceId,
@@ -542,7 +542,7 @@ export class SecretStorage {
             // make sure that the device that sent it is one of the devices that
             // we requested from
             const deviceInfo = this.baseApis.crypto.deviceList.getDeviceByIdentityKey(
-                olmlib.OLM_ALGORITHM,
+                OLM_ALGORITHM,
                 event.getSenderKey(),
             );
             if (!deviceInfo) {

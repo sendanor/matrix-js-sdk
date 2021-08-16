@@ -21,7 +21,6 @@ limitations under the License.
  */
 
 import { logger } from '../../logger';
-import * as olmlib from "../olmlib";
 import {
     DecryptionAlgorithm,
     DecryptionError,
@@ -29,13 +28,20 @@ import {
     registerAlgorithm,
     UnknownDeviceError,
 } from "./base";
-import { WITHHELD_MESSAGES } from '../OlmDevice';
 import { Room } from '../../models/room';
 import { DeviceInfo } from "../deviceinfo";
-import { IOlmSessionResult } from "../olmlib";
+import {
+    IOlmSessionResult,
+    OLM_ALGORITHM,
+    MEGOLM_ALGORITHM,
+    getExistingOlmSessions,
+    encryptMessageForDevice,
+    ensureOlmSessionsForDevices
+} from "../olmlib";
 import { DeviceInfoMap } from "../DeviceList";
 import { MatrixEvent } from "../..";
 import { IEventDecryptionResult, IMegolmSessionData, IncomingRoomKeyRequest } from "../index";
+import { WITHHELD_MESSAGES } from "../types/WITHHELD_MESSAGES";
 
 // determine whether the key can be shared with invitees
 export function isRoomSharedHistory(room: Room): boolean {
@@ -319,7 +325,7 @@ class MegolmEncryption extends EncryptionAlgorithm {
             const payload: IPayload = {
                 type: "m.room_key",
                 content: {
-                    "algorithm": olmlib.MEGOLM_ALGORITHM,
+                    "algorithm": MEGOLM_ALGORITHM,
                     "room_id": this.roomId,
                     "session_id": session.sessionId,
                     "session_key": key.key,
@@ -327,7 +333,7 @@ class MegolmEncryption extends EncryptionAlgorithm {
                     "org.matrix.msc3061.shared_history": sharedHistory,
                 },
             };
-            const [devicesWithoutSession, olmSessions] = await olmlib.getExistingOlmSessions(
+            const [devicesWithoutSession, olmSessions] = await getExistingOlmSessions(
                 this.olmDevice, this.baseApis, shareMap,
             );
 
@@ -469,7 +475,7 @@ class MegolmEncryption extends EncryptionAlgorithm {
      * @private
      *
      * @param {object} devicemap the devices that have olm sessions, as returned by
-     *     olmlib.ensureOlmSessionsForDevices.
+     *     ensureOlmSessionsForDevices.
      * @param {object} devicesByUser a map of user IDs to array of deviceInfo
      * @param {array} [noOlmDevices] an array to fill with devices that don't have
      *     olm sessions
@@ -576,7 +582,7 @@ class MegolmEncryption extends EncryptionAlgorithm {
         const promises = [];
         for (let i = 0; i < userDeviceMap.length; i++) {
             const encryptedContent = {
-                algorithm: olmlib.OLM_ALGORITHM,
+                algorithm: OLM_ALGORITHM,
                 sender_key: this.olmDevice.deviceCurve25519Key,
                 ciphertext: {},
             };
@@ -591,7 +597,7 @@ class MegolmEncryption extends EncryptionAlgorithm {
             contentMap[userId][deviceId] = encryptedContent;
 
             promises.push(
-                olmlib.encryptMessageForDevice(
+                encryptMessageForDevice(
                     encryptedContent.ciphertext,
                     this.userId,
                     this.deviceId,
@@ -741,7 +747,7 @@ class MegolmEncryption extends EncryptionAlgorithm {
             return;
         }
 
-        await olmlib.ensureOlmSessionsForDevices(
+        await ensureOlmSessionsForDevices(
             this.olmDevice, this.baseApis, {
                 [userId]: [device],
             },
@@ -750,7 +756,7 @@ class MegolmEncryption extends EncryptionAlgorithm {
         const payload = {
             type: "m.forwarded_room_key",
             content: {
-                "algorithm": olmlib.MEGOLM_ALGORITHM,
+                "algorithm": MEGOLM_ALGORITHM,
                 "room_id": this.roomId,
                 "session_id": sessionId,
                 "session_key": key.key,
@@ -763,11 +769,11 @@ class MegolmEncryption extends EncryptionAlgorithm {
         };
 
         const encryptedContent = {
-            algorithm: olmlib.OLM_ALGORITHM,
+            algorithm: OLM_ALGORITHM,
             sender_key: this.olmDevice.deviceCurve25519Key,
             ciphertext: {},
         };
-        await olmlib.encryptMessageForDevice(
+        await encryptMessageForDevice(
             encryptedContent.ciphertext,
             this.userId,
             this.deviceId,
@@ -818,7 +824,7 @@ class MegolmEncryption extends EncryptionAlgorithm {
         failedServers?: string[],
     ) {
         logger.debug(`Ensuring Olm sessions for devices in ${this.roomId}`);
-        const devicemap = await olmlib.ensureOlmSessionsForDevices(
+        const devicemap = await ensureOlmSessionsForDevices(
             this.olmDevice, this.baseApis, devicesByUser, false, otkTimeout, failedServers,
             logger.withPrefix(`[${this.roomId}]`),
         );
@@ -898,7 +904,7 @@ class MegolmEncryption extends EncryptionAlgorithm {
         for (const { userId, deviceInfo } of filteredFailedDevices) {
             blockedMap[userId] = blockedMap[userId] || {};
             // we use a similar format to what
-            // olmlib.ensureOlmSessionsForDevices returns, so that
+            // ensureOlmSessionsForDevices returns, so that
             // we can use the same function to split
             blockedMap[userId][deviceInfo.deviceId] = {
                 device: {
@@ -932,7 +938,7 @@ class MegolmEncryption extends EncryptionAlgorithm {
         const payload: IPayload = {
             room_id: this.roomId,
             session_id: session.sessionId,
-            algorithm: olmlib.MEGOLM_ALGORITHM,
+            algorithm: MEGOLM_ALGORITHM,
             sender_key: this.olmDevice.deviceCurve25519Key,
         };
 
@@ -1044,7 +1050,7 @@ class MegolmEncryption extends EncryptionAlgorithm {
             session.sessionId, JSON.stringify(payloadJson),
         );
         const encryptedContent = {
-            algorithm: olmlib.MEGOLM_ALGORITHM,
+            algorithm: MEGOLM_ALGORITHM,
             sender_key: this.olmDevice.deviceCurve25519Key,
             ciphertext: ciphertext,
             session_id: session.sessionId,
@@ -1528,15 +1534,15 @@ class MegolmDecryption extends DecryptionAlgorithm {
                     return;
                 }
             }
-            await olmlib.ensureOlmSessionsForDevices(
+            await ensureOlmSessionsForDevices(
                 this.olmDevice, this.baseApis, { [sender]: [device] }, false,
             );
             const encryptedContent = {
-                algorithm: olmlib.OLM_ALGORITHM,
+                algorithm: OLM_ALGORITHM,
                 sender_key: this.olmDevice.deviceCurve25519Key,
                 ciphertext: {},
             };
-            await olmlib.encryptMessageForDevice(
+            await encryptMessageForDevice(
                 encryptedContent.ciphertext,
                 this.userId,
                 undefined,
@@ -1585,7 +1591,7 @@ class MegolmDecryption extends DecryptionAlgorithm {
         const deviceInfo = this.crypto.getStoredDevice(userId, deviceId);
         const body = keyRequest.requestBody;
 
-        this.olmlib.ensureOlmSessionsForDevices(
+        this.ensureOlmSessionsForDevices(
             this.olmDevice, this.baseApis, {
                 [userId]: [deviceInfo],
             },
@@ -1611,12 +1617,12 @@ class MegolmDecryption extends DecryptionAlgorithm {
             );
         }).then((payload) => {
             const encryptedContent = {
-                algorithm: olmlib.OLM_ALGORITHM,
+                algorithm: OLM_ALGORITHM,
                 sender_key: this.olmDevice.deviceCurve25519Key,
                 ciphertext: {},
             };
 
-            return this.olmlib.encryptMessageForDevice(
+            return this.encryptMessageForDevice(
                 encryptedContent.ciphertext,
                 this.userId,
                 undefined,
@@ -1647,7 +1653,7 @@ class MegolmDecryption extends DecryptionAlgorithm {
         return {
             type: "m.forwarded_room_key",
             content: {
-                "algorithm": olmlib.MEGOLM_ALGORITHM,
+                "algorithm": MEGOLM_ALGORITHM,
                 "room_id": roomId,
                 "sender_key": senderKey,
                 "sender_claimed_ed25519_key": key.sender_claimed_ed25519_key,
@@ -1758,7 +1764,7 @@ class MegolmDecryption extends DecryptionAlgorithm {
     }
 
     public async sendSharedHistoryInboundSessions(devicesByUser: Record<string, DeviceInfo[]>): Promise<void> {
-        await olmlib.ensureOlmSessionsForDevices(this.olmDevice, this.baseApis, devicesByUser);
+        await ensureOlmSessionsForDevices(this.olmDevice, this.baseApis, devicesByUser);
 
         logger.log("sendSharedHistoryInboundSessions to users", Object.keys(devicesByUser));
 
@@ -1773,13 +1779,13 @@ class MegolmDecryption extends DecryptionAlgorithm {
                 contentMap[userId] = {};
                 for (const deviceInfo of devices) {
                     const encryptedContent = {
-                        algorithm: olmlib.OLM_ALGORITHM,
+                        algorithm: OLM_ALGORITHM,
                         sender_key: this.olmDevice.deviceCurve25519Key,
                         ciphertext: {},
                     };
                     contentMap[userId][deviceInfo.deviceId] = encryptedContent;
                     promises.push(
-                        olmlib.encryptMessageForDevice(
+                        encryptMessageForDevice(
                             encryptedContent.ciphertext,
                             this.userId,
                             undefined,
@@ -1830,4 +1836,4 @@ const PROBLEM_DESCRIPTIONS = {
     unknown: "The secure channel with the sender was corrupted.",
 };
 
-registerAlgorithm(olmlib.MEGOLM_ALGORITHM, MegolmEncryption, MegolmDecryption);
+registerAlgorithm(MEGOLM_ALGORITHM, MegolmEncryption, MegolmDecryption);

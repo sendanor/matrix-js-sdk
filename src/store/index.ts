@@ -21,8 +21,9 @@ import { User } from "../models/user";
 import { IEvent, MatrixEvent } from "../models/event";
 import { Filter } from "../filter";
 import { RoomSummary } from "../models/room-summary";
-import { IMinimalEvent, IGroups, IRooms, ISyncResponse } from "../sync-accumulator";
+import { IGroups, IRooms, ISyncResponse } from "../sync-accumulator";
 import { IStartClientOpts } from "../client";
+import { IMinimalEvent } from "../types/IMinimalEvent";
 
 export interface ISavedSync {
     nextBatch: string;

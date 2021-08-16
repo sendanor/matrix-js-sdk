@@ -30,9 +30,9 @@ import { DeviceInfo } from "./deviceinfo";
 import { SecretStorage } from "./SecretStorage";
 import { ICrossSigningKey, ISignedKey, MatrixClient } from "../client";
 import { OlmDevice } from "./OlmDevice";
-import { ICryptoCallbacks } from "../matrix";
 import { ISignatures } from "../@types/signed";
 import { CryptoStore } from "./store/base";
+import { ICryptoCallbacks } from "../types/ICryptoCallbacks";
 
 const KEY_REQUEST_TIMEOUT_MS = 1000 * 60;
 

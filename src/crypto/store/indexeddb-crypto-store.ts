@@ -17,9 +17,13 @@ limitations under the License.
 import { logger, PrefixedLogger } from '../../logger';
 import { LocalStorageCryptoStore } from './localStorage-crypto-store';
 import { MemoryCryptoStore } from './memory-crypto-store';
-import * as IndexedDBCryptoStoreBackend from './indexeddb-crypto-store-backend';
+import {
+    VERSION as IndexedDBCryptoStoreBackendVERSION,
+    upgradeDatabase as IndexedDBCryptoStoreBackend_upgradeDatabase,
+    Backend as IndexedDBCryptoStoreBackend_Backend
+} from './indexeddb-crypto-store-backend';
 import { InvalidCryptoStoreError } from '../../errors';
-import * as IndexedDBHelpers from "../../indexeddb-helpers";
+import { exists as IndexedDBHelpers_exists } from "../../indexeddb-helpers";
 import {
     CryptoStore,
     IDeviceData,
@@ -60,7 +64,7 @@ export class IndexedDBCryptoStore implements CryptoStore {
     public static STORE_BACKUP = 'sessions_needing_backup';
 
     public static exists(indexedDB: IDBFactory, dbName: string): Promise<boolean> {
-        return IndexedDBHelpers.exists(indexedDB, dbName);
+        return IndexedDBHelpers_exists(indexedDB, dbName);
     }
 
     private backendPromise: Promise<CryptoStore> = null;
@@ -96,12 +100,12 @@ export class IndexedDBCryptoStore implements CryptoStore {
 
             logger.log(`connecting to indexeddb ${this.dbName}`);
 
-            const req = this.indexedDB.open(this.dbName, IndexedDBCryptoStoreBackend.VERSION);
+            const req = this.indexedDB.open(this.dbName, IndexedDBCryptoStoreBackendVERSION);
 
             req.onupgradeneeded = (ev) => {
                 const db = req.result;
                 const oldVersion = ev.oldVersion;
-                IndexedDBCryptoStoreBackend.upgradeDatabase(db, oldVersion);
+                IndexedDBCryptoStoreBackend_upgradeDatabase(db, oldVersion);
             };
 
             req.onblocked = () => {
@@ -119,7 +123,7 @@ export class IndexedDBCryptoStore implements CryptoStore {
                 const db = req.result;
 
                 logger.log(`connected to indexeddb ${this.dbName}`);
-                resolve(new IndexedDBCryptoStoreBackend.Backend(db));
+                resolve(new IndexedDBCryptoStoreBackend_Backend(db));
             };
         }).then((backend) => {
             // Edge has IndexedDB but doesn't support compund keys which we use fairly extensively.

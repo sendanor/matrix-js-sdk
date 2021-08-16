@@ -14,13 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { IMinimalEvent, ISyncData, ISyncResponse, SyncAccumulator } from "../sync-accumulator";
+import { ISyncData, ISyncResponse, SyncAccumulator } from "../sync-accumulator";
 import { deepCopy, promiseTry } from "../utils";
 import { exists } from "../indexeddb-helpers";
 import { logger } from '../logger';
 import { IEvent, IStartClientOpts } from "..";
 import { ISavedSync } from "./index";
 import { IIndexedDBBackend, UserTuple } from "./indexeddb-backend";
+import { IMinimalEvent } from "../types/IMinimalEvent";
 
 const VERSION = 3;
 
