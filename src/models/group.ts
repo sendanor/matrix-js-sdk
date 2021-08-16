@@ -17,11 +17,15 @@ limitations under the License.
 
 /**
  * @module models/group
- * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+ * @deprecated groups/communities never made it to the spec and support for them is being
+ *     discontinued.
  */
 
-import * as utils from "../utils";
 import { EventEmitter } from "events";
+
+interface GroupInviterObject {
+    userId: string;
+}
 
 /**
  * Construct a new Group.
@@ -35,50 +39,62 @@ import { EventEmitter } from "events";
  * @prop {Object} inviter Infomation about the user who invited the logged in user
  *       to the group, if myMembership is 'invite'.
  * @prop {string} inviter.userId The user ID of the inviter
- * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+ * @deprecated groups/communities never made it to the spec and support for them is being
+ *     discontinued.
  */
-export function Group(groupId) {
-    this.groupId = groupId;
-    this.name = null;
-    this.avatarUrl = null;
-    this.myMembership = null;
-    this.inviter = null;
+export class Group extends EventEmitter {
+
+    public groupId      : string;
+    public name         : string | null;
+    public avatarUrl    : string | null;
+    public myMembership : string | null;
+    public inviter      : {userId: string} | null;
+
+    public constructor (groupId : string) {
+        super();
+        this.groupId = groupId;
+        this.name = null;
+        this.avatarUrl = null;
+        this.myMembership = null;
+        this.inviter = null;
+    }
+
+    public setProfile (name : string, avatarUrl : string) {
+        if (this.name === name && this.avatarUrl === avatarUrl) return;
+
+        this.name = name || this.groupId;
+        this.avatarUrl = avatarUrl;
+
+        this.emit("Group.profile", this);
+    };
+
+    public setMyMembership (membership : string) {
+        if (this.myMembership === membership) return;
+
+        this.myMembership = membership;
+
+        this.emit("Group.myMembership", this);
+    };
+
+    /**
+     * Sets the 'inviter' property. This does not emit an event (the inviter
+     * will only change when the user is revited / reinvited to a room),
+     * so set this before setting myMembership.
+     * @param {Object} inviter Infomation about who invited us to the room
+     */
+    public setInviter (inviter : GroupInviterObject) {
+        this.inviter = inviter;
+    };
+
 }
-utils.inherits(Group, EventEmitter);
-
-Group.prototype.setProfile = function(name, avatarUrl) {
-    if (this.name === name && this.avatarUrl === avatarUrl) return;
-
-    this.name = name || this.groupId;
-    this.avatarUrl = avatarUrl;
-
-    this.emit("Group.profile", this);
-};
-
-Group.prototype.setMyMembership = function(membership) {
-    if (this.myMembership === membership) return;
-
-    this.myMembership = membership;
-
-    this.emit("Group.myMembership", this);
-};
-
-/**
- * Sets the 'inviter' property. This does not emit an event (the inviter
- * will only change when the user is revited / reinvited to a room),
- * so set this before setting myMembership.
- * @param {Object} inviter Infomation about who invited us to the room
- */
-Group.prototype.setInviter = function(inviter) {
-    this.inviter = inviter;
-};
 
 /**
  * Fires whenever a group's profile information is updated.
  * This means the 'name' and 'avatarUrl' properties.
  * @event module:client~MatrixClient#"Group.profile"
  * @param {Group} group The group whose profile was updated.
- * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+ * @deprecated groups/communities never made it to the spec and support for them is being
+ *     discontinued.
  * @example
  * matrixClient.on("Group.profile", function(group){
  *   var name = group.name;
@@ -90,7 +106,8 @@ Group.prototype.setInviter = function(inviter) {
  * the group is updated.
  * @event module:client~MatrixClient#"Group.myMembership"
  * @param {Group} group The group in which the user's membership changed
- * @deprecated groups/communities never made it to the spec and support for them is being discontinued.
+ * @deprecated groups/communities never made it to the spec and support for them is being
+ *     discontinued.
  * @example
  * matrixClient.on("Group.myMembership", function(group){
  *   var myMembership = group.myMembership;
