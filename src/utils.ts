@@ -685,14 +685,13 @@ export function lexicographicCompare(a: string, b: string): number {
     return (a < b) ? -1 : ((a === b) ? 0 : 1);
 }
 
-const collator = new Intl.Collator();
 /**
  * Performant language-sensitive string comparison
  * @param a the first string to compare
  * @param b the second string to compare
  */
 export function compare(a: string, b: string): number {
-    return collator.compare(a, b);
+    return a === b ? 0 : ( a < b ? -1 : 1);
 }
 
 /**
